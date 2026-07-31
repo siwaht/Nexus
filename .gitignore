@@ -47,3 +47,6 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Uploaded files and generated media (local storage driver; override with STORAGE_DIR)
+uploads/
