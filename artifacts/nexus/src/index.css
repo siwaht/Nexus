@@ -245,8 +245,37 @@
     @apply border-border;
   }
 
+  /* Appearance settings drive these; the theme provider sets them on <html>. */
+  html {
+    font-size: var(--nexus-font-size, 15px);
+  }
+
   body {
     @apply font-sans antialiased bg-background text-foreground;
+  }
+
+  /* Visible focus for keyboard users without boxing in mouse clicks. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  /* KaTeX inherits the surrounding size rather than forcing its own scale. */
+  .katex {
+    font-size: 1.05em;
+  }
+
+  .katex-display {
+    @apply overflow-x-auto overflow-y-hidden py-1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }
 

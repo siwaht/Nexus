@@ -9,6 +9,7 @@ import { db, providersTable } from '@workspace/db';
 import { and, eq, ne } from 'drizzle-orm';
 import { Router, type IRouter, type Request, type Response } from 'express';
 
+import { invalidateCredentialCache } from '../lib/ai';
 import { decrypt, encrypt } from '../lib/crypto';
 import {
   getProviderDefinition,
@@ -132,6 +133,8 @@ router.put('/providers/:name', async (req: Request, res: Response) => {
     .select()
     .from(providersTable)
     .where(and(eq(providersTable.userId, userId), eq(providersTable.name, name)));
+  // Model calls cache decrypted credentials briefly — drop that immediately.
+  invalidateCredentialCache(userId);
   res.json(toProviderView(definition, row, merged));
 });
 
@@ -150,6 +153,7 @@ router.delete('/providers/:name', async (req: Request, res: Response) => {
   await db
     .delete(providersTable)
     .where(and(eq(providersTable.userId, req.user!.id), eq(providersTable.name, name)));
+  invalidateCredentialCache(req.user!.id);
   res.json(toProviderView(definition, undefined, null));
 });
 

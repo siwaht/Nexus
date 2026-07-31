@@ -100,6 +100,10 @@ async function buildAll() {
       "puppeteer",
       "puppeteer-core",
       "electron",
+      // pdf.js ships its own worker/font assets and is loaded dynamically by
+      // the ingestion pipeline — bundling it breaks those internal paths.
+      "pdfjs-dist",
+      "pdfjs-dist/*",
     ],
     sourcemap: "linked",
     plugins: [
