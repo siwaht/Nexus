@@ -1,7 +1,6 @@
-import dns from 'node:dns/promises';
-import net from 'node:net';
-
 import type { Provider, ProviderField, ProviderName } from '@workspace/api-zod';
+
+import { pinnedRequest, resolvePublicHttpUrl } from './ssrf';
 
 /**
  * Provider abstraction layer.
@@ -143,130 +142,6 @@ export interface TestConnectionOutcome {
 
 const REQUEST_TIMEOUT_MS = 15_000;
 
-// ---------------------------------------------------------------------------
-// SSRF protection
-// ---------------------------------------------------------------------------
-
-/**
- * User-supplied endpoints (the Custom provider) are fetched server-side, so
- * they must never reach loopback, private, link-local, or cloud-metadata
- * addresses. Every provider adapter that fetches a user-controlled URL must
- * call assertPublicHttpUrl first and fetch with `redirect: "error"` so a
- * redirect can't bounce the request to a blocked address after validation.
- */
-
-function isBlockedIPv4(ip: string): boolean {
-  const parts = ip.split('.').map((p) => Number.parseInt(p, 10));
-  if (parts.length !== 4 || parts.some((n) => Number.isNaN(n))) return true;
-  const [a, b] = parts;
-  return (
-    a === 0 || // "this" network
-    a === 10 || // RFC1918
-    a === 127 || // loopback
-    (a === 100 && b >= 64 && b <= 127) || // CGNAT
-    (a === 169 && b === 254) || // link-local / cloud metadata
-    (a === 172 && b >= 16 && b <= 31) || // RFC1918
-    (a === 192 && b === 168) || // RFC1918
-    (a === 192 && b === 0) || // IETF protocol assignments
-    (a === 198 && (b === 18 || b === 19)) || // benchmark
-    a >= 224 // multicast / reserved
-  );
-}
-
-/**
- * Parse an IPv6 address into its 8 hextets. Handles `::` compression and
- * dotted-quad tails (e.g. ::ffff:127.0.0.1). Returns null when invalid.
- */
-function parseIPv6(ip: string): number[] | null {
-  let addr = ip.toLowerCase();
-  const tail = addr.match(/(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
-  if (tail) {
-    const bytes = tail.slice(1).map(Number);
-    if (bytes.some((b) => b > 255)) return null;
-    const hi = ((bytes[0] << 8) | bytes[1]).toString(16);
-    const lo = ((bytes[2] << 8) | bytes[3]).toString(16);
-    addr = `${addr.slice(0, tail.index)}${hi}:${lo}`;
-  }
-  const halves = addr.split('::');
-  if (halves.length > 2) return null;
-  const left = halves[0] === '' ? [] : halves[0].split(':');
-  const right =
-    halves.length === 2 ? (halves[1] === '' ? [] : halves[1].split(':')) : [];
-  if (halves.length === 1 && left.length !== 8) return null;
-  const missing = 8 - left.length - right.length;
-  if (missing < 0) return null;
-  const hextets = [...left, ...Array<string>(missing).fill('0'), ...right];
-  if (hextets.length !== 8) return null;
-  const nums = hextets.map((h) =>
-    /^[0-9a-f]{1,4}$/.test(h) ? Number.parseInt(h, 16) : Number.NaN,
-  );
-  return nums.some((n) => Number.isNaN(n)) ? null : nums;
-}
-
-function isBlockedIPv6(ip: string): boolean {
-  const h = parseIPv6(ip);
-  if (!h) return true; // unparseable — treat as blocked
-  const [h0, h1, h2, h3, h4, h5, h6, h7] = h;
-
-  // Any address whose last 32 bits encode an IPv4 address:
-  // IPv4-mapped ::ffff:0:0/96, deprecated IPv4-compatible ::/96 (covers ::1
-  // and :: too, since 0.0.0.x is blocked), and NAT64 64:ff9b::/96.
-  const embedsIpv4 =
-    (h0 === 0 && h1 === 0 && h2 === 0 && h3 === 0 && h4 === 0 && (h5 === 0xffff || h5 === 0)) ||
-    (h0 === 0x64 && h1 === 0xff9b && h2 === 0 && h3 === 0 && h4 === 0 && h5 === 0);
-  if (embedsIpv4) {
-    const ipv4 = `${h6 >> 8}.${h6 & 0xff}.${h7 >> 8}.${h7 & 0xff}`;
-    return isBlockedIPv4(ipv4);
-  }
-
-  if ((h0 & 0xffc0) === 0xfe80) return true; // fe80::/10 link-local
-  if ((h0 & 0xfe00) === 0xfc00) return true; // fc00::/7 unique local
-  if ((h0 & 0xff00) === 0xff00) return true; // ff00::/8 multicast
-  if (h0 === 0x2001 && h1 === 0x0db8) return true; // documentation range
-  if (h0 === 0x2001 && h1 === 0x0000) return true; // Teredo tunneling
-  if (h0 === 0x2002) return true; // 6to4 tunneling
-  return false;
-}
-
-export function isBlockedAddress(ip: string): boolean {
-  const family = net.isIP(ip);
-  if (family === 4) return isBlockedIPv4(ip);
-  if (family === 6) return isBlockedIPv6(ip);
-  return true; // unparseable — treat as blocked
-}
-
-/**
- * Validate that a user-supplied endpoint is HTTPS and resolves to public
- * addresses only. Throws with a user-readable message otherwise.
- */
-export async function assertPublicHttpUrl(rawUrl: string): Promise<void> {
-  let url: URL;
-  try {
-    url = new URL(rawUrl);
-  } catch {
-    throw new Error('The endpoint URL is not valid.');
-  }
-  if (url.protocol !== 'https:') {
-    throw new Error('Custom endpoints must use HTTPS.');
-  }
-  // URL.hostname keeps IPv6 literals bracketed (e.g. "[::1]") — strip the
-  // brackets so address parsing sees the real address.
-  const hostname = url.hostname.replace(/^\[|\]$/g, '');
-  const addresses = net.isIP(hostname)
-    ? [hostname]
-    : (await dns.lookup(hostname, { all: true }).catch(() => [])).map(
-        (a) => a.address,
-      );
-  if (addresses.length === 0) {
-    throw new Error(`Could not resolve host "${hostname}".`);
-  }
-  if (addresses.some(isBlockedAddress)) {
-    throw new Error(
-      'Custom endpoints must resolve to a public address — loopback, private-network and metadata addresses are not allowed.',
-    );
-  }
-}
-
 /** Normalize any provider error into a single human-readable shape. */
 export function normalizeProviderError(status: number, body: string): string {
   try {
@@ -361,6 +236,85 @@ function modelsListTest(
 }
 
 /**
+ * Connection test for the user-controlled Custom provider. DNS is resolved
+ * and vetted exactly once and the request is pinned to those addresses, so
+ * rebinding between validation and connection is impossible (lib/ssrf.ts).
+ */
+async function customChatCompletionsTest(
+  baseUrl: string,
+  token: string,
+  model: string,
+): Promise<TestConnectionOutcome> {
+  const started = Date.now();
+  let resolved;
+  try {
+    resolved = await resolvePublicHttpUrl(
+      `${baseUrl.replace(/\/+$/, '')}/chat/completions`,
+    );
+  } catch (err) {
+    return {
+      ok: false,
+      message:
+        err instanceof Error ? err.message : 'The endpoint URL is not valid.',
+      latencyMs: Date.now() - started,
+    };
+  }
+  const headers: Record<string, string> = {
+    'content-type': 'application/json',
+  };
+  if (token) headers.authorization = `Bearer ${token}`;
+  const body = JSON.stringify({
+    model,
+    messages: [{ role: 'user', content: 'ping' }],
+    max_tokens: 1,
+  });
+  let lastError: unknown;
+  // Every candidate address passed validation — try each until one connects.
+  for (const address of resolved.addresses) {
+    try {
+      const res = await pinnedRequest(
+        resolved.url,
+        address,
+        { method: 'POST', headers, body },
+        REQUEST_TIMEOUT_MS,
+      );
+      const latencyMs = Date.now() - started;
+      if (res.status >= 300 && res.status < 400) {
+        return {
+          ok: false,
+          message:
+            'The endpoint answered with a redirect — redirects are never followed for security.',
+          latencyMs,
+        };
+      }
+      if (res.status >= 200 && res.status < 300) {
+        return {
+          ok: true,
+          message: `OK — model "${model}" responded`,
+          latencyMs,
+        };
+      }
+      return {
+        ok: false,
+        message: normalizeProviderError(res.status, res.body),
+        latencyMs,
+      };
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  const timedOut =
+    lastError instanceof Error && /timed out/i.test(lastError.message);
+  return {
+    ok: false,
+    message: timedOut
+      ? 'Connection timed out — check the base URL and network.'
+      : 'Could not reach the provider — check the base URL and network.',
+    latencyMs: Date.now() - started,
+  };
+}
+
+/**
  * Make one real cheap call against the provider to verify credentials.
  * Each provider gets exactly one adapter here; live model calls in later
  * milestones go through the same per-provider adapter pattern.
@@ -416,24 +370,14 @@ export async function testConnection(
       return modelsListTest('https://api.x.ai/v1/models', {
         Authorization: `Bearer ${credentials.apiKey}`,
       });
-    case 'custom': {
-      const baseUrl = credentials.baseUrl.replace(/\/+$/, '');
-      try {
-        await assertPublicHttpUrl(`${baseUrl}/chat/completions`);
-      } catch (err) {
-        return {
-          ok: false,
-          message:
-            err instanceof Error ? err.message : 'The endpoint URL is not valid.',
-          latencyMs: 0,
-        };
-      }
-      return chatCompletionsTest(
-        `${baseUrl}/chat/completions`,
+    case 'custom':
+      // User-controlled URL: resolve once, vet every address, connect to the
+      // vetted IPs only (HTTPS-only, redirects refused) — see lib/ssrf.ts.
+      return customChatCompletionsTest(
+        credentials.baseUrl,
         credentials.apiKey ?? '',
         credentials.model || 'default',
       );
-    }
   }
 }
 

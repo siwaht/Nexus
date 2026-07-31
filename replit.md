@@ -90,13 +90,14 @@ Built on top of the original spec: MCP client and management UI, a general secre
 
 - Zod catalog must stay v4 (`^4.x`) — Orval emits `z.email()`/`z.url()`/`z.int()`; zod 3 breaks the libs typecheck.
 - New endpoints use the hand-written client in `artifacts/nexus/src/lib/api.ts`, **not** Orval. Only auth and providers are in `openapi.yaml`; re-run codegen after changing that file.
-- Any provider adapter or tool that fetches a user-controlled URL must pass it through `assertPublicHttpUrl` (providers) or `assertPublicWebUrl`/`guardedFetch` (web/browser), and must not follow redirects blindly.
+- Any provider adapter or tool that fetches a user-controlled URL must guard it, and must not follow redirects blindly. Providers use `resolvePublicHttpUrl` + `pinnedRequest` (`lib/ssrf.ts`) — ONE vetted DNS resolution, connection pinned to those exact addresses (rebinding-safe), HTTPS-only, redirects refused. Web/browser tools use `assertPublicWebUrl`/`guardedFetch` (`lib/browser/guard.ts`).
 - `lib/tools/builtin.ts` imports the agent orchestrator lazily (`await import('../agents')`) — the orchestrator imports the registry, so a static import would be circular.
 - `pdfjs-dist` is in `build.mjs`'s `external` list. Bundling it breaks its internal asset paths.
 - `searchVectors` builds raw SQL. Only server-constructed predicates go in — never user text.
 - New composite libs need `composite`/`declarationMap`/`emitDeclarationOnly` in tsconfig and a root `tsconfig.json` reference.
 - Reverse proxies must disable buffering on `/api` or SSE streaming arrives as one delayed blob (`proxy_buffering off`).
-- Self-hosted deployments: same-origin reverse proxy for `/api`, or split-origin with `WEB_ORIGIN` (API) + `VITE_API_URL` (web build); dev off-Replit uses `API_PROXY_TARGET` for the Vite proxy.
+- Self-hosted deployments: same-origin reverse proxy for `/api`, or split-origin with `WEB_ORIGIN` (API) + `VITE_API_URL` (web build) — cookies become `SameSite=None; Secure`, CORS is allowlisted to WEB_ORIGIN, mutations are CSRF-origin-checked; dev off-Replit uses `API_PROXY_TARGET` for the Vite proxy.
+- E2E test for the documented self-hosted setup: `pnpm --filter @workspace/api-server run build && pnpm --filter @workspace/api-server run test`.
 - `uploads/` is gitignored. Override the location with `STORAGE_DIR`.
 
 ## Verification status

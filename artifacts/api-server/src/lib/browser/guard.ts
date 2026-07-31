@@ -1,7 +1,7 @@
 import dns from 'node:dns/promises';
 import net from 'node:net';
 
-import { isBlockedAddress } from '../providers';
+import { isBlockedAddress } from '../ssrf';
 
 /**
  * SSRF guard for the web tools.

@@ -217,6 +217,33 @@ describe('same-origin deployment (default)', () => {
     assert.equal(res.headers.get('location'), '/');
   });
 
+  it('logout returnTo resists protocol-relative, backslash and encoded-slash forms', async () => {
+    const cases = [
+      '//evil.example.com',
+      '/\\evil.example.com',
+      '\\\\evil.example.com',
+      '/%2f%2fevil.example.com',
+      '%2f%2fevil.example.com',
+      '/\\%2fevil.example.com',
+    ];
+    for (const value of cases) {
+      const res = await fetch(`${base}/api/logout?returnTo=${encodeURIComponent(value)}`, {
+        redirect: 'manual',
+      });
+      assert.equal(res.status, 302, value);
+      const location = res.headers.get('location');
+      // Either the safe fallback or a plain same-origin path — never a
+      // protocol-relative or backslash-bearing target.
+      assert.ok(
+        location === '/' ||
+          (location.startsWith('/') &&
+            !location.startsWith('//') &&
+            !location.includes('\\')),
+        `${JSON.stringify(value)} -> ${location}`,
+      );
+    }
+  });
+
   it('removing credentials deconfigures the provider', async () => {
     const res = await fetch(`${base}/api/providers/openai`, {
       method: 'DELETE',

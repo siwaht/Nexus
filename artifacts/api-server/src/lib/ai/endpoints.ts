@@ -1,6 +1,7 @@
 import type { ProviderName } from '@workspace/api-zod';
 
-import { assertPublicHttpUrl, type Credentials } from '../providers';
+import type { Credentials } from '../providers';
+import { resolvePublicHttpUrl } from '../ssrf';
 import { ProviderError } from './types';
 
 /**
@@ -134,7 +135,8 @@ export async function resolveTransport(
     case 'custom': {
       const baseUrl = (credentials.baseUrl ?? '').replace(/\/+$/, '');
       // User-controlled endpoint — SSRF-check before anything is sent to it.
-      await assertPublicHttpUrl(`${baseUrl}/chat/completions`);
+      // Throws unless the URL is HTTPS and every resolved address is public.
+      await resolvePublicHttpUrl(`${baseUrl}/chat/completions`);
       const headers: Record<string, string> = {};
       if (credentials.apiKey) {
         headers.Authorization = `Bearer ${credentials.apiKey}`;
