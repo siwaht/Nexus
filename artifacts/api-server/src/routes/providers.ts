@@ -9,7 +9,7 @@ import { db, providersTable } from '@workspace/db';
 import { and, eq, ne } from 'drizzle-orm';
 import { Router, type IRouter, type Request, type Response } from 'express';
 
-import { invalidateCredentialCache } from '../lib/ai';
+import { invalidateCredentialCache, refreshCatalogue } from '../lib/ai';
 import { decrypt, encrypt } from '../lib/crypto';
 import {
   getProviderDefinition,
@@ -37,6 +37,23 @@ function loadCredentials(encrypted: string): Credentials | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Repopulate the model catalogue after credentials change, without blocking
+ * the response. Model resolution falls back to seed entries while this runs,
+ * so chat keeps working even before the refresh lands.
+ */
+function refreshCatalogueInBackground(
+  userId: string,
+  reason: string,
+  log: { info: (obj: object, msg: string) => void; warn: (obj: object, msg: string) => void },
+): void {
+  void refreshCatalogue(userId).then(
+    (outcome) =>
+      log.info({ total: outcome.total, reason }, 'Model catalogue auto-refreshed'),
+    (err) => log.warn({ err, reason }, 'Model catalogue auto-refresh failed'),
+  );
 }
 
 async function buildProviderList(userId: string): Promise<Provider[]> {
@@ -135,6 +152,7 @@ router.put('/providers/:name', async (req: Request, res: Response) => {
     .where(and(eq(providersTable.userId, userId), eq(providersTable.name, name)));
   // Model calls cache decrypted credentials briefly — drop that immediately.
   invalidateCredentialCache(userId);
+  refreshCatalogueInBackground(userId, 'credentials-saved', req.log);
   res.json(toProviderView(definition, row, merged));
 });
 
@@ -201,6 +219,9 @@ router.post(
       { provider: name, ok: outcome.ok, latencyMs: outcome.latencyMs },
       'Provider connection test',
     );
+    if (outcome.ok) {
+      refreshCatalogueInBackground(req.user!.id, 'connection-tested', req.log);
+    }
     res.json(outcome);
   },
 );
