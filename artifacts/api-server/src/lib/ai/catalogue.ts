@@ -40,7 +40,7 @@ export const SEED_MODELS: Record<string, { model: string; task: ModelTask }[]> =
   'cloudflare-workers-ai': [
     { model: '@cf/meta/llama-3.3-70b-instruct-fp8-fast', task: 'Text Generation' },
     { model: '@cf/openai/gpt-oss-120b', task: 'Text Generation' },
-    { model: '@cf/meta/llama-3.1-8b-instruct', task: 'Text Generation' },
+    { model: '@cf/meta/llama-3.1-8b-instruct-fp8', task: 'Text Generation' },
     { model: '@cf/meta/llama-4-scout-17b-16e-instruct', task: 'Image-to-Text' },
     {
       model: '@cf/mistralai/mistral-small-3.1-24b-instruct',

@@ -328,13 +328,13 @@ export async function testConnection(
       return chatCompletionsTest(
         `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(credentials.accountId)}/ai/v1/chat/completions`,
         credentials.apiToken,
-        '@cf/meta/llama-3.1-8b-instruct',
+        '@cf/meta/llama-3.1-8b-instruct-fp8',
       );
     case 'cloudflare-ai-gateway':
       return chatCompletionsTest(
         `https://gateway.ai.cloudflare.com/v1/${encodeURIComponent(credentials.accountId)}/${encodeURIComponent(credentials.gatewayId || 'default')}/compat/chat/completions`,
         credentials.apiToken,
-        'workers-ai/@cf/meta/llama-3.1-8b-instruct',
+        'workers-ai/@cf/meta/llama-3.1-8b-instruct-fp8',
       );
     case 'openrouter':
       return modelsListTest('https://openrouter.ai/api/v1/auth/key', {

@@ -82,7 +82,7 @@ You need two values for the **Cloudflare Workers AI** provider card:
 2. Select **Create a Workers AI API Token**, review the prefilled information, create it, and copy the token. The token needs the **Workers AI** permission.
 3. Your **Account ID** is in the dashboard sidebar (or on the same Workers AI page).
 
-Paste both into Settings → Providers → Cloudflare Workers AI, hit **Save**, then **Test connection** — Nexus makes one real, cheap API call (`max_tokens: 1` against `@cf/meta/llama-3.1-8b-instruct`) and reports OK or the exact provider error.
+Paste both into Settings → Providers → Cloudflare Workers AI, hit **Save**, then **Test connection** — Nexus makes one real, cheap API call (`max_tokens: 1` against `@cf/meta/llama-3.1-8b-instruct-fp8`) and reports OK or the exact provider error.
 
 Then open **Settings → Models** and press **Refresh** to pull the live catalogue.
 
