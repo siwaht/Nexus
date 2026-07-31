@@ -5,7 +5,7 @@ import {
   TestProviderConnectionParams,
   type Provider,
 } from '@workspace/api-zod';
-import { db, providersTable } from '@workspace/db';
+import { db, modelCatalogueTable, providersTable } from '@workspace/db';
 import { and, eq, ne } from 'drizzle-orm';
 import { Router, type IRouter, type Request, type Response } from 'express';
 
@@ -171,6 +171,16 @@ router.delete('/providers/:name', async (req: Request, res: Response) => {
   await db
     .delete(providersTable)
     .where(and(eq(providersTable.userId, req.user!.id), eq(providersTable.name, name)));
+  // Drop the cached catalogue rows too, so disconnected providers never
+  // surface in the model picker or in automatic model resolution.
+  await db
+    .delete(modelCatalogueTable)
+    .where(
+      and(
+        eq(modelCatalogueTable.userId, req.user!.id),
+        eq(modelCatalogueTable.providerName, name),
+      ),
+    );
   invalidateCredentialCache(req.user!.id);
   res.json(toProviderView(definition, undefined, null));
 });

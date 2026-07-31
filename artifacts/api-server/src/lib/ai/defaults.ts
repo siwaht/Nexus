@@ -4,7 +4,7 @@ import {
   userSettingsTable,
   type UserSettingsRow,
 } from '@workspace/db';
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, eq, inArray } from 'drizzle-orm';
 
 import { connectedProviders } from './credentials';
 import { seedEntriesFor } from './catalogue';
@@ -112,6 +112,11 @@ async function bestCatalogueRef(
   userId: string,
   task: ModelTask,
 ): Promise<string | null> {
+  // Only consider providers that still have credentials — the catalogue
+  // caches models for providers the user may have disconnected since.
+  const connected = await connectedProviders(userId);
+  if (connected.length === 0) return null;
+
   const rows = await db
     .select({
       modelRef: modelCatalogueTable.modelRef,
@@ -124,6 +129,7 @@ async function bestCatalogueRef(
       and(
         eq(modelCatalogueTable.userId, userId),
         eq(modelCatalogueTable.task, task),
+        inArray(modelCatalogueTable.providerName, connected),
       ),
     )
     .orderBy(asc(modelCatalogueTable.modelRef));
