@@ -46,7 +46,16 @@ function getSafeReturnTo(value: unknown): string {
   // origin, so OIDC completion/logout never strands the user on the API host.
   const fallback = WEB_ORIGIN ? `${WEB_ORIGIN}/` : '/';
   if (typeof value !== 'string') return fallback;
-  if (value.startsWith('/') && !value.startsWith('//')) return value;
+  // Reject protocol-relative URLs and backslashes (browsers treat "\" as a
+  // path separator, so "/\evil.com" can resolve cross-origin in some
+  // clients) — only plain same-origin paths pass.
+  if (
+    value.startsWith('/') &&
+    !value.startsWith('//') &&
+    !value.includes('\\')
+  ) {
+    return value;
+  }
   // Absolute URLs are only accepted on the configured frontend origin.
   if (WEB_ORIGIN) {
     try {

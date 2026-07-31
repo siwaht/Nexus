@@ -53,7 +53,7 @@ Milestone 1 (complete): auth wall, app shell (sidebar/top bar), Settings → Pro
 - Re-run `pnpm --filter @workspace/api-spec run codegen` after every `openapi.yaml` change, before using new types.
 - New composite libs need `composite`/`declarationMap`/`emitDeclarationOnly` in tsconfig and a root `tsconfig.json` reference.
 - Self-hosted deployments: same-origin reverse proxy for `/api`, or split-origin with `WEB_ORIGIN` (API) + `VITE_API_URL` (web build) — cookies become `SameSite=None; Secure`, CORS is allowlisted to WEB_ORIGIN, mutations are CSRF-origin-checked; dev off-Replit uses `API_PROXY_TARGET` for the Vite proxy.
-- Any provider adapter that fetches a user-controlled URL must pass it through `assertPublicHttpUrl` (`artifacts/api-server/src/lib/providers.ts`) and fetch with `redirect: 'error'` — SSRF protection.
+- Any provider adapter that fetches a user-controlled URL must use `resolvePublicHttpUrl` + `pinnedRequest` (`artifacts/api-server/src/lib/ssrf.ts`) — ONE vetted DNS resolution, connection pinned to those exact addresses (rebinding-safe), HTTPS-only, redirects refused.
 - E2E test for the documented self-hosted setup: `pnpm --filter @workspace/api-server run build && pnpm --filter @workspace/api-server run test`.
 
 ## Pointers
