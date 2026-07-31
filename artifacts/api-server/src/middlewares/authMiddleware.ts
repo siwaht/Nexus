@@ -3,8 +3,10 @@ import { type NextFunction, type Request, type Response } from 'express';
 import * as oidc from 'openid-client';
 
 import {
+  AUTH_MODE,
   clearSession,
   getOidcConfig,
+  getOrCreateDevUser,
   getSession,
   getSessionId,
   updateSession,
@@ -59,6 +61,14 @@ export async function authMiddleware(
   req.isAuthenticated = function (this: Request) {
     return this.user != null;
   } as Request['isAuthenticated'];
+
+  // AUTH_MODE=none skips the login screen entirely: every request runs as
+  // the built-in dev user, no session cookie required.
+  if (AUTH_MODE === 'none') {
+    req.user = await getOrCreateDevUser();
+    next();
+    return;
+  }
 
   const sid = getSessionId(req);
   if (!sid) {

@@ -14,15 +14,13 @@ import { rateLimit } from '../lib/rateLimit';
 /**
  * Portable auth: AUTH_MODE=replit uses Replit OIDC (see auth.ts);
  * AUTH_MODE=local uses email+password with bcrypt and httpOnly session
- * cookies so the app runs identically on any host. Defaults to replit when
- * running on Replit, local everywhere else.
+ * cookies so the app runs identically on any host; AUTH_MODE=none disables
+ * the login screen and runs everything as a built-in dev user.
+ * Defaults to replit when running on Replit, local everywhere else.
  */
 
-export const AUTH_MODE: 'replit' | 'local' =
-  (process.env.AUTH_MODE ?? (process.env.REPL_ID ? 'replit' : 'local')) ===
-  'local'
-    ? 'local'
-    : 'replit';
+export { AUTH_MODE } from '../lib/auth';
+import { AUTH_MODE } from '../lib/auth';
 
 const router: IRouter = Router();
 

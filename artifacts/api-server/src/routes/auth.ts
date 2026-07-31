@@ -9,6 +9,7 @@ import { Router, type IRouter, type Request, type Response } from 'express';
 import * as oidc from 'openid-client';
 
 import {
+  AUTH_MODE,
   clearSession,
   createSession,
   deleteSession,
@@ -243,17 +244,12 @@ router.get('/callback', async (req: Request, res: Response) => {
 });
 
 router.get('/logout', async (req: Request, res: Response) => {
-  const authMode =
-    (process.env.AUTH_MODE ?? (process.env.REPL_ID ? 'replit' : 'local')) ===
-    'local'
-      ? 'local'
-      : 'replit';
   const returnTo = getSafeReturnTo(req.query.returnTo);
   const sid = getSessionId(req);
   await clearSession(res, sid);
 
-  // Local auth has no OIDC provider to log out of — just clear the session.
-  if (authMode === 'local') {
+  // Local/none modes have no OIDC provider to log out of — just clear the session.
+  if (AUTH_MODE !== 'replit') {
     res.redirect(returnTo);
     return;
   }
