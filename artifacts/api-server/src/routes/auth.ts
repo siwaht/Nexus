@@ -26,8 +26,20 @@ const router: IRouter = Router();
 
 function getOrigin(req: Request): string {
   const proto = req.headers['x-forwarded-proto'] || 'https';
-  const host =
+  const rawHost =
     req.headers['x-forwarded-host'] || req.headers['host'] || 'localhost';
+  // x-forwarded-host can be a comma-separated proxy chain — take the first hop.
+  const host = String(rawHost).split(',')[0].trim();
+  // Behind the Replit preview proxy the Host is localhost, but the OIDC
+  // client only accepts the repl's registered public domain — use it then.
+  // Direct traffic on the public domain (or a custom/deployed domain)
+  // arrives with a public Host and is used as-is.
+  if (
+    /^(localhost|127\.0\.0\.1)(:\d+)?$/.test(host) &&
+    process.env.REPLIT_DEV_DOMAIN
+  ) {
+    return `https://${process.env.REPLIT_DEV_DOMAIN}`;
+  }
   return `${proto}://${host}`;
 }
 
