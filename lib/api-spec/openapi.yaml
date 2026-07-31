@@ -10,6 +10,10 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: Auth
+    description: Browser and mobile authentication endpoints.
+  - name: Providers
+    description: AI provider configuration and connection testing.
 paths:
   /healthz:
     get:
@@ -24,7 +28,332 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /auth/user:
+    get:
+      tags: [Auth]
+      operationId: getCurrentAuthUser
+      summary: Get the currently authenticated user
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationSessionHeader'
+        - $ref: '#/components/parameters/SessionCookie'
+      responses:
+        '200':
+          description: Auth status resolved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthUserEnvelope'
+  /auth/config:
+    get:
+      tags: [Auth]
+      operationId: getAuthConfig
+      summary: Get the active authentication mode
+      description: Tells the frontend which sign-in UI to render (Replit OIDC vs local email+password).
+      responses:
+        '200':
+          description: Active auth configuration.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthConfig'
+  /auth/local/register:
+    post:
+      tags: [Auth]
+      operationId: registerLocalUser
+      summary: Create a local email+password account (AUTH_MODE=local only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LocalRegisterInput'
+      responses:
+        '200':
+          description: Account created; session cookie set.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthUserEnvelope'
+        '400':
+          description: Validation failure.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Local auth is not enabled.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: An account with this email already exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /auth/local/login:
+    post:
+      tags: [Auth]
+      operationId: loginLocalUser
+      summary: Sign in with email+password (AUTH_MODE=local only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LocalLoginInput'
+      responses:
+        '200':
+          description: Signed in; session cookie set.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthUserEnvelope'
+        '401':
+          description: Invalid credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Local auth is not enabled.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /login:
+    get:
+      tags: [Auth]
+      operationId: beginBrowserLogin
+      summary: Start the browser OIDC login flow
+      parameters:
+        - name: returnTo
+          in: query
+          required: false
+          description: Relative path to redirect to after login (must start with `/`). Defaults to `/`.
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirect to the OIDC authorization endpoint.
+  /callback:
+    get:
+      tags: [Auth]
+      operationId: handleBrowserLoginCallback
+      summary: Complete the browser OIDC login flow
+      parameters:
+        - name: code
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: iss
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uri
+      responses:
+        '302':
+          description: Redirect to the `returnTo` path on success (defaults to `/`) or `/api/login` on failure.
+  /logout:
+    get:
+      tags: [Auth]
+      operationId: logoutBrowserSession
+      summary: Clear the session and begin OIDC logout
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationSessionHeader'
+        - $ref: '#/components/parameters/SessionCookie'
+        - name: returnTo
+          in: query
+          required: false
+          schema:
+            type: string
+            default: /
+      responses:
+        '302':
+          description: Redirect to the OIDC provider logout URL with a post-logout redirect back to the validated `returnTo` path.
+  /mobile-auth/token-exchange:
+    post:
+      tags: [Auth]
+      operationId: exchangeMobileAuthorizationCode
+      summary: Exchange a mobile OIDC code for a session token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MobileTokenExchangeRequest'
+      responses:
+        '200':
+          description: Session created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MobileTokenExchangeSuccess'
+        '400':
+          description: Missing or invalid required fields.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: Token did not contain usable claims.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          description: Token exchange failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /mobile-auth/logout:
+    post:
+      tags: [Auth]
+      operationId: logoutMobileSession
+      summary: Delete a mobile session token
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationSessionHeader'
+      responses:
+        '200':
+          description: Logout processed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogoutSuccess'
+  /providers:
+    get:
+      tags: [Providers]
+      operationId: listProviders
+      summary: List all AI providers with their configuration status
+      description: Returns one entry per supported provider. Secret credential values are never returned — only masked previews.
+      responses:
+        '200':
+          description: All providers and their status.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Provider'
+        '401':
+          description: Not authenticated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /providers/{name}:
+    put:
+      tags: [Providers]
+      operationId: saveProviderCredentials
+      summary: Save (create or update) credentials for a provider
+      description: Credentials are encrypted at rest with AES-256-GCM. The response contains only masked previews.
+      parameters:
+        - name: name
+          in: path
+          required: true
+          description: Provider identifier (e.g. `cloudflare-workers-ai`).
+          schema:
+            $ref: '#/components/schemas/ProviderName'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProviderCredentialsInput'
+      responses:
+        '200':
+          description: Credentials saved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Provider'
+        '400':
+          description: Validation failure.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: Not authenticated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+    delete:
+      tags: [Providers]
+      operationId: deleteProviderCredentials
+      summary: Remove stored credentials for a provider
+      parameters:
+        - name: name
+          in: path
+          required: true
+          description: Provider identifier.
+          schema:
+            $ref: '#/components/schemas/ProviderName'
+      responses:
+        '200':
+          description: Credentials removed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Provider'
+        '401':
+          description: Not authenticated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /providers/{name}/test:
+    post:
+      tags: [Providers]
+      operationId: testProviderConnection
+      summary: Test a provider connection with one real cheap API call
+      description: Reports ok plus a human-readable message — the exact provider error (bad token, missing permission, rate limited) rather than a generic failure.
+      parameters:
+        - name: name
+          in: path
+          required: true
+          description: Provider identifier.
+          schema:
+            $ref: '#/components/schemas/ProviderName'
+      responses:
+        '200':
+          description: Test executed (check `ok` for the outcome).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProviderTestResult'
+        '401':
+          description: Not authenticated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
 components:
+  parameters:
+    AuthorizationSessionHeader:
+      name: Authorization
+      in: header
+      required: false
+      description: Opaque session token — `Bearer <sid>`.
+      schema:
+        type: string
+    SessionCookie:
+      name: sid
+      in: cookie
+      required: false
+      description: Browser session cookie.
+      schema:
+        type: string
   schemas:
     HealthStatus:
       type: object
@@ -33,4 +362,186 @@ components:
           type: string
       required:
         - status
-
+    AuthUser:
+      type: object
+      required: [id, email, firstName, lastName, profileImageUrl]
+      properties:
+        id:
+          type: string
+        email:
+          type: [string, 'null']
+          format: email
+        firstName:
+          type: [string, 'null']
+        lastName:
+          type: [string, 'null']
+        profileImageUrl:
+          type: [string, 'null']
+    AuthUserEnvelope:
+      type: object
+      required: [user]
+      properties:
+        user:
+          oneOf:
+            - $ref: '#/components/schemas/AuthUser'
+            - type: 'null'
+    AuthConfig:
+      type: object
+      required: [mode]
+      properties:
+        mode:
+          type: string
+          enum: [replit, local]
+          description: Active authentication strategy, selected server-side via the AUTH_MODE env var.
+    LocalRegisterInput:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        firstName:
+          type: string
+        lastName:
+          type: string
+    LocalLoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 1
+    MobileTokenExchangeRequest:
+      type: object
+      required: [code, code_verifier, redirect_uri, state]
+      properties:
+        code:
+          type: string
+          minLength: 1
+        code_verifier:
+          type: string
+          minLength: 1
+        redirect_uri:
+          type: string
+          minLength: 1
+          format: uri
+        state:
+          type: string
+          minLength: 1
+        nonce:
+          type: string
+          minLength: 1
+    MobileTokenExchangeSuccess:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+    LogoutSuccess:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
+          const: true
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+    ProviderName:
+      type: string
+      enum:
+        - cloudflare-workers-ai
+        - cloudflare-ai-gateway
+        - openrouter
+        - openai
+        - anthropic
+        - google-ai-studio
+        - groq
+        - mistral
+        - deepseek
+        - xai
+        - custom
+    ProviderField:
+      type: object
+      required: [key, label, secret, required]
+      properties:
+        key:
+          type: string
+          description: Credential key stored server-side (e.g. `apiToken`).
+        label:
+          type: string
+          description: Human label for the settings UI.
+        secret:
+          type: boolean
+          description: Whether this field is a secret (rendered as a masked password input).
+        required:
+          type: boolean
+        placeholder:
+          type: string
+        maskedPreview:
+          type: [string, 'null']
+          description: Masked preview of the stored value (e.g. `••••4f2a`), null when not set.
+    Provider:
+      type: object
+      required: [name, displayName, description, fields, configured, isDefault, status]
+      properties:
+        name:
+          $ref: '#/components/schemas/ProviderName'
+        displayName:
+          type: string
+        description:
+          type: string
+          description: One-line explanation shown on the provider card.
+        docsUrl:
+          type: [string, 'null']
+          description: Link to where the user can obtain credentials.
+        fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProviderField'
+        configured:
+          type: boolean
+          description: Whether all required credentials are stored.
+        isDefault:
+          type: boolean
+        status:
+          type: string
+          enum: [untested, ok, error]
+        statusMessage:
+          type: [string, 'null']
+          description: Exact message from the last connection test.
+        lastTestedAt:
+          type: [string, 'null']
+          format: date-time
+    ProviderCredentialsInput:
+      type: object
+      required: [credentials]
+      properties:
+        credentials:
+          type: object
+          additionalProperties:
+            type: string
+          description: Map of credential key to plaintext value. Only fields present are updated.
+        isDefault:
+          type: boolean
+          description: When true, mark this provider as the default.
+    ProviderTestResult:
+      type: object
+      required: [ok, message]
+      properties:
+        ok:
+          type: boolean
+        message:
+          type: string
+          description: Human-readable result — "OK" or the exact provider error.
+        latencyMs:
+          type: [integer, 'null']
