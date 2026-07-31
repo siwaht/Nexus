@@ -45,13 +45,17 @@ router.get(
   handler(async (req, res) => {
     const uid = userId(req);
     const task = optionalStr(req.query.task) as ModelTask | null;
-    let entries = await listCatalogue(uid, task ?? undefined);
+    const entries = await listCatalogue(uid, task ?? undefined);
 
-    // Cold start: show seeds for connected providers so the picker isn't empty.
-    if (entries.length === 0) {
-      const connected = await connectedProviders(uid);
-      entries = connected.flatMap((provider) => seedEntriesFor(provider));
-      if (task) entries = entries.filter((entry) => entry.task === task);
+    // A connected provider with no cached rows yet (refresh pending or
+    // failed) still shows its seed models, so the picker is never empty
+    // for a provider the user just connected.
+    const connected = await connectedProviders(uid);
+    const cachedProviders = new Set(entries.map((entry) => entry.providerName));
+    const missing = connected.filter((provider) => !cachedProviders.has(provider));
+    if (missing.length > 0) {
+      const seeds = missing.flatMap((provider) => seedEntriesFor(provider));
+      entries.push(...(task ? seeds.filter((entry) => entry.task === task) : seeds));
     }
 
     const overrides = await db

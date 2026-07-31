@@ -55,6 +55,45 @@ export const SEED_MODELS: Record<string, { model: string; task: ModelTask }[]> =
     { model: '@cf/black-forest-labs/flux-1-schnell', task: 'Text-to-Image' },
     { model: '@cf/deepgram/aura-1', task: 'Text-to-Speech' },
   ],
+  groq: [
+    { model: 'llama-3.3-70b-versatile', task: 'Text Generation' },
+    { model: 'llama-3.1-8b-instant', task: 'Text Generation' },
+    { model: 'whisper-large-v3-turbo', task: 'Automatic Speech Recognition' },
+  ],
+  mistral: [
+    { model: 'mistral-large-latest', task: 'Text Generation' },
+    { model: 'mistral-small-latest', task: 'Text Generation' },
+    { model: 'mistral-embed', task: 'Text Embeddings' },
+  ],
+  openai: [
+    { model: 'gpt-4o', task: 'Image-to-Text' },
+    { model: 'gpt-4o-mini', task: 'Text Generation' },
+    { model: 'text-embedding-3-small', task: 'Text Embeddings' },
+    { model: 'whisper-1', task: 'Automatic Speech Recognition' },
+    { model: 'tts-1', task: 'Text-to-Speech' },
+  ],
+  anthropic: [
+    { model: 'claude-sonnet-4-20250514', task: 'Image-to-Text' },
+    { model: 'claude-haiku-4-5-20251001', task: 'Text Generation' },
+  ],
+  'google-ai-studio': [
+    { model: 'gemini-2.5-flash', task: 'Image-to-Text' },
+    { model: 'gemini-2.0-flash', task: 'Text Generation' },
+    { model: 'text-embedding-004', task: 'Text Embeddings' },
+  ],
+  openrouter: [
+    { model: 'openai/gpt-4o-mini', task: 'Text Generation' },
+    { model: 'anthropic/claude-sonnet-4', task: 'Image-to-Text' },
+    { model: 'meta-llama/llama-3.3-70b-instruct', task: 'Text Generation' },
+  ],
+  deepseek: [
+    { model: 'deepseek-chat', task: 'Text Generation' },
+    { model: 'deepseek-reasoner', task: 'Text Generation' },
+  ],
+  xai: [
+    { model: 'grok-3', task: 'Text Generation' },
+    { model: 'grok-3-mini', task: 'Text Generation' },
+  ],
 };
 
 /** Map a provider's own task label onto our normalized set. */

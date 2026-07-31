@@ -3,7 +3,11 @@ import { db, providersTable } from '@workspace/db';
 import { and, eq } from 'drizzle-orm';
 
 import { decrypt } from '../crypto';
-import { getProviderDefinition, type Credentials } from '../providers';
+import {
+  getProviderDefinition,
+  sanitizeCredentials,
+  type Credentials,
+} from '../providers';
 import { ProviderError, type ModelRef, type ParsedModelRef } from './types';
 
 /**
@@ -58,7 +62,9 @@ export async function loadCredentials(
 
   let credentials: Credentials;
   try {
-    credentials = JSON.parse(decrypt(row.encryptedCredentials)) as Credentials;
+    credentials = sanitizeCredentials(
+      JSON.parse(decrypt(row.encryptedCredentials)),
+    ) as Credentials;
   } catch {
     throw new ProviderError({
       kind: 'auth',

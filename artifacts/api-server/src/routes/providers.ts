@@ -14,6 +14,7 @@ import { decrypt, encrypt } from '../lib/crypto';
 import {
   getProviderDefinition,
   PROVIDER_DEFINITIONS,
+  sanitizeCredentials,
   testConnection,
   toProviderView,
   type Credentials,
@@ -33,7 +34,7 @@ const testLimiter = rateLimit({
 
 function loadCredentials(encrypted: string): Credentials | null {
   try {
-    return JSON.parse(decrypt(encrypted)) as Credentials;
+    return sanitizeCredentials(JSON.parse(decrypt(encrypted))) as Credentials;
   } catch {
     return null;
   }
@@ -95,8 +96,9 @@ router.put('/providers/:name', async (req: Request, res: Response) => {
   const knownKeys = new Set(definition.fields.map((f) => f.key));
   const cleaned: Credentials = {};
   for (const [key, value] of Object.entries(incoming)) {
-    if (knownKeys.has(key) && typeof value === 'string' && value.length > 0) {
-      cleaned[key] = value;
+    if (knownKeys.has(key) && typeof value === 'string' && value.trim().length > 0) {
+      // Trim pasted whitespace — a stray newline in an API key breaks auth.
+      cleaned[key] = value.trim();
     }
   }
 

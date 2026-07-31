@@ -102,6 +102,8 @@ function ProviderCard({ provider }: ProviderCardProps) {
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getListProvidersQueryKey() });
+          // Provider changes alter the model catalogue — refresh pickers too.
+          queryClient.invalidateQueries({ queryKey: ['models'] });
           setCredentials((prev) => {
             const reset: Record<string, string> = {};
             Object.keys(prev).forEach((key) => {
@@ -131,6 +133,8 @@ function ProviderCard({ provider }: ProviderCardProps) {
       {
         onSuccess: (result) => {
           queryClient.invalidateQueries({ queryKey: getListProvidersQueryKey() });
+          // Provider changes alter the model catalogue — refresh pickers too.
+          queryClient.invalidateQueries({ queryKey: ['models'] });
           if (result.ok) {
             toast({
               title: "Connection OK",
@@ -163,6 +167,8 @@ function ProviderCard({ provider }: ProviderCardProps) {
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getListProvidersQueryKey() });
+          // Provider changes alter the model catalogue — refresh pickers too.
+          queryClient.invalidateQueries({ queryKey: ['models'] });
           setShowDeleteConfirm(false);
           toast({
             title: "Removed",

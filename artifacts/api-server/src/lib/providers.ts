@@ -19,6 +19,16 @@ export interface ProviderDefinition {
   fields: Array<Omit<ProviderField, 'maskedPreview'>>;
 }
 
+/** Trim pasted whitespace off credential values — a trailing newline breaks auth headers. */
+export function sanitizeCredentials(credentials: Credentials): Credentials {
+  return Object.fromEntries(
+    Object.entries(credentials).map(([key, value]) => [
+      key,
+      typeof value === 'string' ? value.trim() : value,
+    ]),
+  );
+}
+
 export const PROVIDER_DEFINITIONS: readonly ProviderDefinition[] = [
   {
     name: 'cloudflare-workers-ai',
