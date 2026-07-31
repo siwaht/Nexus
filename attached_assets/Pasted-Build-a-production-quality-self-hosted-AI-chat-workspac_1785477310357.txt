@@ -1,0 +1,250 @@
+Build a production-quality, self-hosted AI chat workspace called "Nexus" — a cleaner, more capable
+alternative to the ChatGPT web UI that I run myself and point at Cloudflare Workers AI (plus other
+providers via Cloudflare AI Gateway) using my own API keys.
+
+=====================================================================
+1. STACK
+=====================================================================
+- Frontend: React + TypeScript + Vite, Tailwind CSS, shadcn/ui components, lucide icons.
+- Backend: Node + Express (TypeScript). ALL model calls go through the backend — the browser must
+  never see an API key.
+- Database: Postgres (use Replit's built-in Postgres) with Drizzle ORM and migrations.
+- File storage: Replit Object Storage if available, else a local ./uploads dir with DB metadata.
+- Streaming: Server-Sent Events from backend to frontend for token-by-token output.
+- Everything must run with `npm run dev` on Replit with zero manual setup beyond entering keys in
+  the Settings UI.
+
+=====================================================================
+2. SCREENS
+=====================================================================
+A. Chat (main screen)
+   - Left sidebar: collapsible. New Chat button, search over conversations, conversation list grouped
+     by Today / Yesterday / Previous 7 days / Older. Rename, pin, archive, delete, export (Markdown +
+     JSON). Folders/projects to group chats.
+   - Center: message thread. Markdown rendering with GitHub-flavored tables, LaTeX (KaTeX), and code
+     blocks with syntax highlighting + copy button + language label. Streaming responses with a stop
+     button. Per-message actions: copy, regenerate, edit-and-resend, branch from here, delete,
+     thumbs up/down. Show token counts and latency per message.
+   - Composer: multiline auto-growing textarea, Enter to send / Shift+Enter for newline, drag-and-drop
+     file zone over the whole window, paste-image support, attachment chips with type icon +
+     progress + remove, mic button for voice input (records audio, transcribes via Whisper, drops the
+     text into the composer).
+   - Top bar: model picker (searchable dropdown grouped by provider and by task, showing context
+     window and modality badges), system-prompt / persona selector, temperature + max-tokens +
+     top-p sliders in a popover, web-search toggle, "use my library" toggle.
+   - Right panel (toggleable): shows retrieved sources for the current answer — file name, page or
+     chunk, similarity score, click to jump to the highlighted passage in the document viewer.
+
+B. Library (files + books)
+   - Grid/list of everything uploaded, with type icon, size, page/duration count, upload date,
+     processing status, tags, and a "used in N chats" count.
+   - Filters by type (audio, video, image, PDF, doc, sheet, code, text, ebook) and full-text search
+     across extracted content.
+   - Click a file to open a viewer: PDF page viewer, audio/video player with a clickable transcript
+     that seeks the media, image preview, text/code viewer. Every viewer has an "Ask about this"
+     button that opens a chat scoped to that document.
+   - Book detail view: cover, title, author, publisher, year, page count, description, and
+     ratings/reviews pulled from public metadata APIs (see section 6). Buttons: Summarize,
+     Chapter-by-chapter outline, Key takeaways, Character map, Quiz me, Find similar books,
+     "Should I read this?" verdict that combines external ratings with the actual text.
+
+C. Settings
+   - Tabs: Providers, Models, Memory, Appearance, Data, About.
+   - Providers tab: a card per provider — Cloudflare Workers AI (Account ID + API Token),
+     Cloudflare AI Gateway (Account ID + Gateway ID + CF token), OpenAI, Anthropic, Google AI Studio,
+     Groq, Mistral, DeepSeek, xAI. Each card has masked password inputs, a Save button, a
+     "Test connection" button that makes one real cheap call and reports OK / the exact error, and a
+     Remove key button. Show which provider is currently the default.
+   - Models tab: refresh the model catalogue from the live API, enable/disable individual models,
+     set the default chat model, default vision model, default transcription model, default embedding
+     model, default image model, default TTS model.
+   - Memory tab: view/edit/delete remembered facts, toggle auto-memory, set the summarization
+     threshold, wipe all memory.
+   - Appearance: light/dark/system, accent colour, font size, message density, code theme.
+   - Data: export everything as a zip, import it back, delete all data.
+
+=====================================================================
+3. CLOUDFLARE INTEGRATION — USE THESE EXACT ENDPOINTS
+=====================================================================
+Auth header for every Cloudflare call: `Authorization: Bearer <CF_API_TOKEN>`
+The token needs the "Workers AI" permission. The user supplies Account ID + API Token in Settings.
+
+- Chat / text generation (OpenAI-compatible, supports "stream": true):
+  POST https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/v1/chat/completions
+  Body: { "model": "@cf/meta/llama-3.3-70b-instruct-fp8-fast", "messages": [...], "stream": true }
+  Implement this with the official `openai` npm SDK by setting
+  baseURL = `https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/v1`.
+
+- Embeddings (OpenAI-compatible):
+  POST https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/v1/embeddings
+
+- Any non-chat model (audio transcription, image generation, TTS, reranking, translation):
+  POST https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/run/{model}
+  e.g. .../ai/run/@cf/openai/whisper-large-v3-turbo with the raw audio bytes.
+
+- Model discovery — do NOT hardcode the catalogue. Fetch it and cache it:
+  GET https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/models/search
+  Useful query params: task, search, hide_experimental=true, page, per_page.
+  Group the results in the UI by their `task` field (Text Generation, Automatic Speech Recognition,
+  Text Embeddings, Text-to-Image, Image-to-Text, Translation, Reranking, Text-to-Speech).
+
+- Other providers through one URL (Cloudflare AI Gateway, OpenAI-compatible):
+  POST https://gateway.ai.cloudflare.com/v1/{account_id}/{gateway_id}/compat/chat/completions
+  Model format is "{provider}/{model}", e.g. "openai/gpt-5-mini",
+  "anthropic/claude-sonnet-4-5", "google-ai-studio/gemini-2.5-flash", "workers-ai/@cf/meta/llama-3.1-8b-instruct".
+  Use "default" as the gateway_id if the user hasn't created one. Route through the Gateway whenever
+  a Gateway ID is configured so I get caching, rate limiting, and unified analytics.
+
+Seed defaults to use before the live catalogue loads (treat as fallbacks, and verify each one against
+the models/search response — drop any that 404):
+  text     @cf/meta/llama-3.3-70b-instruct-fp8-fast, @cf/openai/gpt-oss-120b, @cf/meta/llama-3.1-8b-instruct
+  vision   @cf/meta/llama-4-scout-17b-16e-instruct, @cf/mistralai/mistral-small-3.1-24b-instruct
+  audio    @cf/openai/whisper-large-v3-turbo
+  embed    @cf/baai/bge-m3
+  rerank   @cf/baai/bge-reranker-base
+  image    @cf/black-forest-labs/flux-1-schnell
+  tts      @cf/deepgram/aura-1
+
+Build a provider abstraction layer: one internal interface (chat, embed, transcribe, generateImage,
+speak) with Cloudflare-direct, Cloudflare-Gateway, and direct-provider adapters behind it. Adding a
+provider must mean adding one adapter file, nothing else. Normalize every provider error into a
+single shape and surface the real message in the UI (bad token, model not found, rate limited,
+out of credit) instead of a generic "something went wrong".
+
+=====================================================================
+4. FILE HANDLING — ONE PIPELINE, BRANCHED BY TYPE
+=====================================================================
+On upload: validate MIME type and size, store the file, create a DB record, then run an async
+ingestion job with visible status (queued → extracting → chunking → embedding → ready / failed with
+reason). Never block the chat UI on ingestion.
+
+  PDF                  → extract text per page with pdf-parse/pdfjs; if a page has no text layer,
+                         render it to an image and run it through the vision model (OCR fallback).
+                         Keep page numbers for citations.
+  DOCX / PPTX / XLSX   → mammoth / a pptx parser / SheetJS. Sheets become Markdown tables.
+  EPUB / MOBI          → epub parser, preserve chapter structure and titles.
+  TXT / MD / CSV / JSON / code → read directly, detect language, keep line numbers.
+  Images (png/jpg/webp/gif/heic) → send to the vision model for description + OCR; also attach the
+                         image itself to vision-capable chat turns as base64/data URL.
+  Audio (mp3/wav/m4a/ogg/flac/webm) → ffmpeg to 16kHz mono wav, chunk if long, transcribe with
+                         Whisper, keep timestamps.
+  Video (mp4/mov/webm/mkv) → ffmpeg to strip the audio track → transcribe as above. Also grab
+                         keyframes at intervals and caption them with the vision model so the
+                         answer covers what was on screen, not just what was said. Be explicit in
+                         the UI that video is handled as audio + sampled frames, not native video
+                         understanding.
+  Archives (zip)       → expand and ingest supported members individually.
+
+All extracted text goes through the same path: chunk (~800 tokens, 15% overlap, respect chapter and
+page boundaries) → embed → store the vector. Retrieval = vector search, then rerank the top 20 down
+to the top 5, then inject with citation metadata.
+
+=====================================================================
+5. OUTPUT IN THE RIGHT FORMAT
+=====================================================================
+The response format must match what was asked for, not always plain text:
+- Tables render as real sortable tables with a "copy as CSV" action.
+- Code blocks get syntax highlighting, a copy button, and a download-as-file button.
+- Charts: if the model returns a chart spec, render it with Recharts.
+- Mermaid diagrams render as diagrams with a toggle to view the source.
+- "Read this aloud" on any assistant message → TTS model → inline audio player.
+- "Make an image of…" routes to the image model and shows the result with a download button.
+- Long documents (summaries, outlines, drafts) render as a side-by-side artifact panel with
+  download as .md / .pdf, not buried in the chat scroll.
+- Detect intent server-side and pick the right model automatically, but always show which model ran
+  and let me override.
+
+=====================================================================
+6. BOOK METADATA AND RATINGS
+=====================================================================
+When a book is uploaded, extract title/author from metadata or the first pages, then enrich from
+keyless public APIs:
+- Open Library search:  https://openlibrary.org/search.json?q={title}+{author}
+- Open Library ratings: https://openlibrary.org/works/{work_id}/ratings.json
+- Google Books:         https://www.googleapis.com/books/v1/volumes?q=intitle:{title}+inauthor:{author}
+Show average rating, rating count, published year, subjects, cover, and description. Cache results.
+If a lookup fails, show "no external ratings found" — never fabricate a rating.
+"Should I read this?" must clearly separate external-rating evidence from the model's own read of the
+actual text, and cite chapters for its claims.
+
+=====================================================================
+7. MEMORY — CONVERSATIONS MUST STAY COHERENT
+=====================================================================
+Three layers, all inspectable and editable by me:
+1. Thread memory: full message history, persisted. When a thread exceeds ~60% of the model's context
+   window, summarize the oldest turns into a rolling summary block, keep the last N turns verbatim,
+   and show a "summarized earlier messages" marker in the UI that expands to the original.
+2. Semantic recall: embed every message; on each turn, pull in the most relevant older messages from
+   the same thread and from other threads, clearly labelled as recalled context.
+3. Long-term facts: after each exchange, extract durable facts (preferences, projects, people,
+   recurring goals) into a facts table with source-message links and timestamps. Inject the relevant
+   ones into the system prompt. Dedupe and update contradicted facts rather than piling up. Every
+   fact is viewable, editable, and deletable in Settings → Memory, and the UI shows a small toast
+   when a new fact is saved.
+Switching models mid-thread must preserve the full thread — re-map the history to the new model's
+context window rather than starting over.
+
+=====================================================================
+8. SECURITY — NOT OPTIONAL
+=====================================================================
+This app is reachable from the public internet on Replit, so:
+- Put the entire app behind authentication (Replit Auth if available, otherwise email+password with
+  bcrypt and httpOnly session cookies). No unauthenticated route may reach a model call or a file.
+- Encrypt API keys at rest with AES-256-GCM using a server-side secret from an env var. Keys are
+  write-only over the API: return only a masked preview like "••••4f2a", never the plaintext.
+- Rate limit the chat and upload endpoints per session.
+- Validate and cap uploads (configurable max size, MIME allowlist, sanitized filenames, no path
+  traversal, randomized stored names).
+- Escape all rendered Markdown/HTML; sanitize model output before rendering to prevent XSS.
+- Never log key material, file contents, or full prompts.
+
+=====================================================================
+9. DATA MODEL
+=====================================================================
+users, sessions, providers(id, name, encrypted_credentials, is_default, last_tested_at, status),
+models(id, provider_id, model_ref, task, context_window, modalities, enabled),
+folders, conversations(id, folder_id, title, model_ref, system_prompt, settings_json, pinned,
+archived), messages(id, conversation_id, role, content, attachments_json, model_ref, token_counts,
+latency_ms, rating, parent_message_id for branching), summaries(conversation_id, up_to_message_id,
+text), files(id, filename, mime, size, storage_key, status, error, extracted_text, page_count,
+duration_s, tags), file_chunks(id, file_id, ordinal, page_or_timestamp, text, embedding vector),
+books(file_id, title, author, isbn, cover_url, external_ratings_json, fetched_at),
+memory_facts(id, text, source_message_id, confidence, created_at, updated_at),
+usage_log(id, model_ref, tokens_in, tokens_out, cost_estimate, created_at).
+Use pgvector for embeddings if the extension is available; otherwise store vectors as JSON and do
+cosine similarity in-process, behind the same repository interface so it can be swapped later.
+
+=====================================================================
+10. QUALITY BAR
+=====================================================================
+- Keyboard-first: Cmd/Ctrl+K command palette, Cmd+N new chat, Cmd+/ focus composer, / to search,
+  Esc to stop generation.
+- Fully responsive; usable one-handed on a phone with the sidebar as a sheet.
+- Accessible: semantic HTML, correct ARIA on the composer and streaming region (aria-live=polite),
+  visible focus rings, full keyboard reachability, contrast that passes AA. Note in the README that
+  full WCAG conformance still needs manual testing with a screen reader.
+- Optimistic UI, skeleton loaders, no layout shift when a response streams in.
+- Empty states that teach: on first run, show a Getting Started card that links straight to
+  Settings → Providers and explains where to find a Cloudflare Account ID and API token.
+- Errors are actionable: "Your Cloudflare token is missing the Workers AI permission" with a
+  Fix in Settings button, not "Error 403".
+- A usage/cost panel showing tokens and estimated spend per model per day.
+
+=====================================================================
+11. BUILD ORDER (ship something working at every step)
+=====================================================================
+1. Scaffold + auth + DB schema + Settings→Providers with encrypted key storage and a working
+   Test connection against Cloudflare.
+2. Model catalogue from /ai/models/search + model picker.
+3. Streaming text chat with persisted conversations and the sidebar.
+4. File upload + ingestion pipeline for text/PDF, with the Library screen and the document viewer.
+5. RAG: chunk, embed, retrieve, rerank, cite, with the sources panel.
+6. Audio + video + image handling (Whisper, vision, ffmpeg).
+7. Memory: rolling summaries, semantic recall, long-term facts, plus the Memory settings tab.
+8. Books: metadata enrichment, ratings, and the book action buttons.
+9. Rich output: charts, mermaid, artifacts, TTS, image generation.
+10. AI Gateway multi-provider routing, then usage/cost tracking, export/import, and polish.
+
+Write a README covering setup, where to get a Cloudflare Account ID and a Workers AI API token, and
+which env vars are required. Include tests for the provider adapters, the ingestion pipeline, and the
+memory summarization logic.
