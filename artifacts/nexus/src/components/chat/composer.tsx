@@ -188,15 +188,21 @@ export function Composer({
   const canSend = !disabled && !streaming && (value.trim() || attachments.length > 0);
 
   return (
-    <div className="border-t border-border bg-card">
-      <div className="mx-auto w-full max-w-3xl p-3">
+    <div className="relative shrink-0 px-3 pb-3 pt-1">
+      {/* Fades the thread out behind the composer instead of a hard rule. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 -top-8 h-8 bg-gradient-to-t from-background to-transparent"
+      />
+
+      <div className="mx-auto w-full max-w-3xl">
         {/* Attachment chips */}
         {attachments.length > 0 && (
           <div className="mb-2 flex flex-wrap gap-2">
             {attachments.map((attachment) => (
               <div
                 key={attachment.id}
-                className="flex items-center gap-1.5 rounded-md border border-border bg-muted/40 py-1 pl-1.5 pr-1 text-xs"
+                className="flex animate-[fade-up_0.25s_ease-out] items-center gap-1.5 rounded-full border border-border bg-muted/50 py-1 pl-1.5 pr-1 text-xs shadow-xs"
               >
                 {attachment.imageUrl ? (
                   <img
@@ -225,7 +231,7 @@ export function Composer({
           </div>
         )}
 
-        <div className="relative rounded-xl border border-border bg-background focus-within:border-ring focus-within:ring-1 focus-within:ring-ring">
+        <div className="relative rounded-2xl border border-border/80 bg-card shadow-md transition-all duration-200 focus-within:border-primary/40 focus-within:shadow-glow">
           <Textarea
             ref={textareaRef}
             value={value}
@@ -251,7 +257,7 @@ export function Composer({
             disabled={disabled}
             rows={1}
             aria-label="Message"
-            className="min-h-[52px] resize-none border-0 bg-transparent pb-11 pr-4 shadow-none focus-visible:ring-0"
+            className="min-h-[54px] resize-none border-0 bg-transparent px-4 pb-11 pt-3.5 text-[0.9375rem] leading-relaxed shadow-none focus-visible:ring-0"
             data-testid="textarea-message"
           />
 
@@ -485,7 +491,10 @@ export function Composer({
             ) : (
               <Button
                 size="icon"
-                className="h-8 w-8"
+                className={cn(
+                  'h-8 w-8 rounded-lg transition-all duration-200',
+                  canSend && 'shadow-sm hover:scale-105',
+                )}
                 onClick={onSend}
                 disabled={!canSend}
                 aria-label="Send message"
@@ -497,9 +506,22 @@ export function Composer({
           </div>
         </div>
 
-        <div className="mt-1.5 flex items-center justify-between gap-2 px-1">
+        <div className="mt-2 flex items-center justify-between gap-2 px-1">
           <p className="text-[11px] text-muted-foreground">
-            {disabled ? disabledReason : 'Enter to send · Shift+Enter for a new line'}
+            {disabled ? (
+              disabledReason
+            ) : (
+              <>
+                <kbd className="rounded border border-border bg-muted px-1 py-px font-mono text-[10px]">
+                  Enter
+                </kbd>{' '}
+                to send ·{' '}
+                <kbd className="rounded border border-border bg-muted px-1 py-px font-mono text-[10px]">
+                  Shift+Enter
+                </kbd>{' '}
+                for a new line
+              </>
+            )}
           </p>
           {settings.useLibrary && (
             <Badge variant="outline" className="h-5 gap-1 px-1.5 text-[10px]">

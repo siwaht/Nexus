@@ -40,9 +40,9 @@ export function SourcesPanel({
       className="flex h-full w-full flex-col border-l border-border bg-card"
       aria-label="Sources"
     >
-      <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-4">
+      <header className="glass flex h-14 shrink-0 items-center gap-2 border-b border-border/70 px-4">
         <div className="flex-1">
-          <p className="text-sm font-medium">Sources</p>
+          <p className="font-display text-sm font-semibold">Sources</p>
           <p className="text-xs text-muted-foreground">
             {citations.length} {citations.length === 1 ? 'reference' : 'references'}
           </p>
@@ -62,9 +62,12 @@ export function SourcesPanel({
       <ScrollArea className="flex-1">
         <ol className="divide-y divide-border">
           {citations.map((citation, index) => (
-            <li key={`${citation.sourceType}-${index}`} className="p-3">
+            <li
+              key={`${citation.sourceType}-${index}`}
+              className="p-3 transition-colors hover:bg-muted/30"
+            >
               <div className="flex items-start gap-2">
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded bg-muted text-[11px] font-medium">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-primary/12 text-[11px] font-semibold text-primary">
                   {index + 1}
                 </span>
                 <div className="min-w-0 flex-1">

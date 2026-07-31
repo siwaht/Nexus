@@ -55,7 +55,7 @@ export default function Settings() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="shrink-0 border-b border-border bg-card px-6 py-4">
+      <header className="glass shrink-0 border-b border-border/70 px-6 py-4">
         <div className="mx-auto flex max-w-6xl items-center gap-4">
           <Button asChild variant="ghost" size="sm" className="gap-2">
             <Link href="/" data-testid="link-back">
@@ -64,7 +64,9 @@ export default function Settings() {
             </Link>
           </Button>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
+            <h1 className="font-display text-2xl font-semibold tracking-tight">
+              Settings
+            </h1>
             <p className="mt-0.5 text-sm text-muted-foreground">
               Providers, models, tools, MCP servers, skills, memory and data
             </p>
@@ -87,15 +89,20 @@ export default function Settings() {
                     key={tab.value}
                     href={`/settings/${tab.value}`}
                     className={cn(
-                      'flex shrink-0 items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
+                      'flex shrink-0 items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all duration-150',
                       isActive
-                        ? 'bg-accent font-medium text-accent-foreground'
-                        : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
+                        ? 'rail-active bg-muted font-medium text-foreground shadow-xs'
+                        : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
                     )}
                     aria-current={isActive ? 'page' : undefined}
                     data-testid={`tab-${tab.value}`}
                   >
-                    <Icon className="h-4 w-4 shrink-0" />
+                    <Icon
+                      className={cn(
+                        'h-4 w-4 shrink-0',
+                        isActive && 'text-primary',
+                      )}
+                    />
                     {tab.label}
                   </Link>
                 );

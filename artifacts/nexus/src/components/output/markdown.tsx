@@ -129,15 +129,15 @@ function CodeBlock({
   const lineCount = source.split('\n').length;
 
   return (
-    <div className="group relative my-4 overflow-hidden rounded-lg border border-border bg-[#0d1117]">
-      <div className="flex items-center justify-between gap-2 border-b border-border/60 bg-muted/30 px-3 py-1.5">
-        <span className="font-mono text-xs text-muted-foreground">
+    <div className="group relative my-4 overflow-hidden rounded-xl border border-border/70 bg-[hsl(var(--code-surface))] shadow-sm">
+      <div className="flex items-center justify-between gap-2 border-b border-white/[0.06] bg-[hsl(var(--code-header))] px-3 py-1.5">
+        <span className="font-mono text-xs text-slate-400">
           {language ?? 'text'}
           <span className="ml-2 opacity-60">
             {lineCount} {lineCount === 1 ? 'line' : 'lines'}
           </span>
         </span>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 text-slate-300">
           <Button
             variant="ghost"
             size="sm"
@@ -171,7 +171,7 @@ function CodeBlock({
           </Button>
         </div>
       </div>
-      <pre className="overflow-x-auto p-4 text-[13px] leading-relaxed">
+      <pre className="overflow-x-auto p-4 text-[12.5px] leading-[1.7] text-slate-100">
         {children}
       </pre>
     </div>
@@ -345,9 +345,16 @@ export const Markdown = memo(function Markdown({
     <div
       className={cn(
         'prose prose-sm dark:prose-invert max-w-none',
-        'prose-headings:font-semibold prose-headings:tracking-tight',
-        'prose-p:leading-relaxed prose-li:leading-relaxed',
+        // Display face and tighter tracking on headings, matching the app shell.
+        'prose-headings:font-display prose-headings:font-semibold prose-headings:tracking-tight',
+        'prose-h1:text-xl prose-h2:mt-6 prose-h2:text-lg prose-h3:text-base',
+        // Generous line height is what makes long answers readable.
+        'prose-p:leading-[1.72] prose-li:leading-[1.72] prose-p:text-[0.9375rem] prose-li:text-[0.9375rem]',
+        // The CodeBlock component owns its own chrome, so strip prose's.
         'prose-pre:m-0 prose-pre:bg-transparent prose-pre:p-0',
+        'prose-code:before:content-none prose-code:after:content-none',
+        'prose-strong:font-semibold prose-strong:text-foreground',
+        'prose-hr:border-border',
         className,
       )}
     >

@@ -123,15 +123,15 @@ export default function BrowserPage({ onBack }: BrowserPageProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="shrink-0 border-b border-border bg-card px-4 py-3">
+      <header className="glass shrink-0 border-b border-border/70 px-4 py-3">
         <div className="mx-auto flex max-w-5xl items-center gap-3">
           <Button variant="ghost" size="sm" className="gap-2" onClick={onBack}>
             <ArrowLeft className="h-4 w-4" />
             Chat
           </Button>
           <div className="flex-1">
-            <h1 className="flex items-center gap-2 text-xl font-bold tracking-tight">
-              <Globe className="h-5 w-5" />
+            <h1 className="flex items-center gap-2 font-display text-xl font-semibold tracking-tight">
+              <Globe className="h-5 w-5 text-primary" />
               Web
             </h1>
             <p className="text-sm text-muted-foreground">

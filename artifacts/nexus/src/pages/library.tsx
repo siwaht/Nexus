@@ -196,7 +196,7 @@ export default function LibraryPage({
         handleUpload(Array.from(event.dataTransfer.files));
       }}
     >
-      <header className="shrink-0 border-b border-border bg-card px-4 py-3">
+      <header className="glass shrink-0 border-b border-border/70 px-4 py-3">
         <div className="mx-auto flex max-w-6xl items-center gap-3">
           <Button
             variant="ghost"
@@ -209,8 +209,8 @@ export default function LibraryPage({
             Chat
           </Button>
           <div className="flex-1">
-            <h1 className="flex items-center gap-2 text-xl font-bold tracking-tight">
-              <LibraryIcon className="h-5 w-5" />
+            <h1 className="flex items-center gap-2 font-display text-xl font-semibold tracking-tight">
+              <LibraryIcon className="h-5 w-5 text-primary" />
               Library
             </h1>
             <p className="text-sm text-muted-foreground">
@@ -311,7 +311,8 @@ export default function LibraryPage({
               <Card
                 key={file.id}
                 className={cn(
-                  'group cursor-pointer border-card-border transition-colors hover:border-primary/40',
+                  'group cursor-pointer border-card-border transition-all duration-200',
+                  'hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md',
                   file.status === 'failed' && 'border-destructive/40',
                 )}
                 onClick={() => onSelectFile(file.id)}

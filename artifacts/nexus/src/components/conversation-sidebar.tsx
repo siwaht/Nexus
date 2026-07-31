@@ -170,10 +170,10 @@ export function ConversationSidebar({
           type="button"
           onClick={() => onSelect(conversation.id)}
           className={cn(
-            'flex w-full items-center gap-2 rounded-md px-2 py-1.5 pr-8 text-left text-sm transition-colors',
+            'flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 pr-8 text-left text-sm transition-all duration-150',
             active
-              ? 'bg-sidebar-accent font-medium'
-              : 'hover:bg-sidebar-accent/60',
+              ? 'rail-active bg-sidebar-accent font-medium shadow-xs'
+              : 'text-foreground/85 hover:bg-sidebar-accent/60 hover:text-foreground',
           )}
           data-testid={`link-conversation-${conversation.id}`}
         >
@@ -321,9 +321,9 @@ export function ConversationSidebar({
 
   return (
     <div className="flex h-full flex-col">
-      <div className="space-y-2 border-b border-sidebar-border p-3">
+      <div className="space-y-2 border-b border-sidebar-border/70 p-3">
         <Button
-          className="h-9 w-full justify-start gap-2 font-medium"
+          className="h-9 w-full justify-start gap-2 font-medium shadow-sm transition-transform duration-150 active:scale-[0.98]"
           onClick={onNewChat}
           data-testid="button-new-chat"
         >
@@ -372,11 +372,12 @@ export function ConversationSidebar({
       <ScrollArea className="flex-1">
         <div className="space-y-3 p-2">
           {isLoading && (
-            <div className="space-y-2 p-1" aria-busy="true">
-              {[0, 1, 2, 3, 4].map((index) => (
+            <div className="space-y-1.5 p-1" aria-busy="true" aria-label="Loading conversations">
+              {[0, 1, 2, 3, 4, 5].map((index) => (
                 <div
                   key={index}
-                  className="h-8 animate-pulse rounded-md bg-sidebar-accent/40"
+                  className="skeleton h-8"
+                  style={{ opacity: 1 - index * 0.13 }}
                 />
               ))}
             </div>

@@ -86,10 +86,12 @@ export function ArtifactPanel({ artifact, onClose }: ArtifactPanelProps) {
       className="flex h-full w-full flex-col border-l border-border bg-card"
       aria-label="Artifact panel"
     >
-      <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-4">
-        {artifactIcon(artifact.kind)}
+      <header className="glass flex h-14 shrink-0 items-center gap-2 border-b border-border/70 px-4">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/12 text-primary">
+          {artifactIcon(artifact.kind)}
+        </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium">
+          <p className="truncate font-display text-sm font-semibold">
             {artifact.title ?? 'Artifact'}
           </p>
           <Badge variant="outline" className="mt-0.5 h-4 px-1 text-[10px]">
@@ -160,14 +162,16 @@ export function ArtifactChip({
     <button
       type="button"
       onClick={onOpen}
-      className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-2.5 py-1.5 text-left text-xs transition-colors hover:bg-muted"
+      className="group flex items-center gap-2 rounded-lg border border-border/70 bg-card px-2.5 py-1.5 text-left text-xs shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-sm"
       data-testid={`chip-artifact-${artifact.id}`}
     >
-      {artifactIcon(artifact.kind)}
+      <span className="text-primary">{artifactIcon(artifact.kind)}</span>
       <span className="max-w-48 truncate font-medium">
         {artifact.title ?? artifact.kind}
       </span>
-      <span className="text-muted-foreground">Open</span>
+      <span className="text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5">
+        →
+      </span>
     </button>
   );
 }

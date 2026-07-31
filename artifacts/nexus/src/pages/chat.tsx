@@ -1,6 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'wouter';
-import { AlertTriangle, ArrowRight, KeyRound, Sparkles } from 'lucide-react';
+import {
+  AlertTriangle,
+  ArrowRight,
+  BarChart3,
+  Globe,
+  KeyRound,
+  Library,
+  Sparkles,
+  Workflow,
+} from 'lucide-react';
 
 import { Composer, type Attachment, type ComposerSettings } from '@/components/chat/composer';
 import { MessageItem } from '@/components/chat/message-item';
@@ -371,8 +380,8 @@ export default function ChatPage({
       }}
     >
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Top strip: model picker + thread toggles */}
-        <div className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-4">
+        {/* Top strip: model picker + what the model was actually given */}
+        <div className="flex h-11 shrink-0 items-center gap-2 border-b border-border/60 px-3">
           <ModelPicker
             value={modelRef}
             onChange={(next) => {
@@ -383,22 +392,25 @@ export default function ChatPage({
             compact
           />
           {chat.state.contextInfo && (
-            <span className="hidden items-center gap-2 text-xs text-muted-foreground md:flex">
+            <div className="hidden items-center gap-1.5 md:flex">
               {chat.state.contextInfo.facts > 0 && (
-                <span>{chat.state.contextInfo.facts} facts</span>
+                <ContextPill label={`${chat.state.contextInfo.facts} facts`} />
               )}
               {chat.state.contextInfo.recalled > 0 && (
-                <span>{chat.state.contextInfo.recalled} recalled</span>
+                <ContextPill
+                  label={`${chat.state.contextInfo.recalled} recalled`}
+                />
               )}
-              {chat.state.contextInfo.summarized && <span>summarized</span>}
-            </span>
+              {chat.state.contextInfo.summarized && (
+                <ContextPill label="summarized" />
+              )}
+            </div>
           )}
           <div className="flex-1" />
           {detail?.summaries && detail.summaries.length > 0 && (
-            <span className="text-xs text-muted-foreground">
-              {detail.summaries.length} summarized{' '}
-              {detail.summaries.length === 1 ? 'block' : 'blocks'}
-            </span>
+            <ContextPill
+              label={`${detail.summaries.length} summarized ${detail.summaries.length === 1 ? 'block' : 'blocks'}`}
+            />
           )}
         </div>
 
@@ -410,18 +422,32 @@ export default function ChatPage({
             aria-atomic="false"
           >
             {isLoading && conversationId && (
-              <div className="space-y-4" aria-busy="true">
+              <div className="space-y-6" aria-busy="true" aria-label="Loading conversation">
                 {[0, 1, 2].map((index) => (
                   <div key={index} className="space-y-2">
-                    <div className="h-4 w-24 animate-pulse rounded bg-muted" />
-                    <div className="h-16 animate-pulse rounded bg-muted/60" />
+                    <div className="skeleton ml-auto h-9 w-2/5" />
+                    <div className="skeleton h-4 w-full" />
+                    <div className="skeleton h-4 w-11/12" />
+                    <div className="skeleton h-4 w-3/5" />
                   </div>
                 ))}
               </div>
             )}
 
             {!isLoading && messages.length === 0 && !showStreaming && (
-              <EmptyThread onOpenAgents={onOpenAgents} />
+              <EmptyThread
+                onOpenAgents={onOpenAgents}
+                onPick={(prompt) => {
+                  setInput(prompt);
+                  window.setTimeout(() => {
+                    document
+                      .querySelector<HTMLTextAreaElement>(
+                        '[data-testid="textarea-message"]',
+                      )
+                      ?.focus();
+                  }, 0);
+                }}
+              />
             )}
 
             {detail?.summaries?.map((summary) => (
@@ -621,6 +647,15 @@ export default function ChatPage({
   );
 }
 
+/** Small badge describing what went into the model's context this turn. */
+function ContextPill({ label }: { label: string }) {
+  return (
+    <span className="rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[11px] text-muted-foreground">
+      {label}
+    </span>
+  );
+}
+
 function toWireAttachment(attachment: Attachment) {
   return {
     ...(attachment.imageUrl ? { imageUrl: attachment.imageUrl } : {}),
@@ -629,24 +664,89 @@ function toWireAttachment(attachment: Attachment) {
   };
 }
 
-function EmptyThread({ onOpenAgents }: { onOpenAgents: () => void }) {
+/** Starter prompts that each showcase a different capability. */
+const STARTERS = [
+  {
+    icon: Globe,
+    label: 'Research a topic',
+    prompt:
+      'Research the current state of WebGPU browser support and summarise the tradeoffs versus WebGL, with sources.',
+  },
+  {
+    icon: BarChart3,
+    label: 'Chart some data',
+    prompt:
+      'Chart the last five years of global electric vehicle sales by region, then tell me what stands out.',
+  },
+  {
+    icon: Workflow,
+    label: 'Diagram a system',
+    prompt:
+      'Draw a diagram of a typical OAuth 2.0 authorization code flow with PKCE, and explain each hop.',
+  },
+  {
+    icon: Library,
+    label: 'Ask about my files',
+    prompt: 'What are the key takeaways from the documents in my library?',
+  },
+];
+
+function EmptyThread({
+  onOpenAgents,
+  onPick,
+}: {
+  onOpenAgents: () => void;
+  onPick: (prompt: string) => void;
+}) {
   return (
-    <div className="py-12 text-center">
-      <h2 className="text-xl font-semibold">What are we working on?</h2>
-      <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-        Ask anything. Turn on Library to search your uploaded files, or hand a
-        big job to a team of agents.
-      </p>
-      <Button
-        variant="outline"
-        size="sm"
-        className="mt-4 gap-2"
-        onClick={onOpenAgents}
-        data-testid="button-empty-agents"
-      >
-        Run a multi-agent task
-        <ArrowRight className="h-3.5 w-3.5" />
-      </Button>
+    <div className="animate-[fade-up_0.4s_cubic-bezier(0.16,1,0.3,1)] py-10">
+      <div className="text-center">
+        <h2 className="font-display text-2xl font-semibold tracking-tight">
+          What are we working on?
+        </h2>
+        <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
+          Ask anything. Turn on Library to search your own documents, or hand a
+          big job to a team of agents.
+        </p>
+      </div>
+
+      <div className="mx-auto mt-7 grid max-w-xl gap-2 sm:grid-cols-2">
+        {STARTERS.map((starter) => {
+          const Icon = starter.icon;
+          return (
+            <button
+              key={starter.label}
+              type="button"
+              onClick={() => onPick(starter.prompt)}
+              className="group flex items-start gap-3 rounded-xl border border-border/70 bg-card/60 p-3 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-card hover:shadow-md"
+              data-testid={`button-starter-${starter.label.replace(/\s+/g, '-').toLowerCase()}`}
+            >
+              <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary/15">
+                <Icon className="h-3.5 w-3.5" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-medium">{starter.label}</span>
+                <span className="mt-0.5 line-clamp-2 block text-xs leading-relaxed text-muted-foreground">
+                  {starter.prompt}
+                </span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="mt-6 text-center">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="gap-2 text-muted-foreground hover:text-foreground"
+          onClick={onOpenAgents}
+          data-testid="button-empty-agents"
+        >
+          Or split a large task across multiple agents
+          <ArrowRight className="h-3.5 w-3.5" />
+        </Button>
+      </div>
     </div>
   );
 }

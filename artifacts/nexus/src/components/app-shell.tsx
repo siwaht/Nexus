@@ -101,7 +101,7 @@ export function AppShell({
       {!isMobile && (
         <aside
           className={cn(
-            'shrink-0 overflow-hidden border-r border-sidebar-border bg-sidebar transition-[width] duration-200 ease-out',
+            'glass-sidebar shrink-0 overflow-hidden border-r border-sidebar-border transition-[width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]',
             sidebarOpen ? 'w-72' : 'w-0',
           )}
           aria-label="Conversations"
@@ -111,7 +111,7 @@ export function AppShell({
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border bg-card px-3">
+        <header className="glass sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-border/70 px-3">
           {isMobile ? (
             <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
               <SheetTrigger asChild>
@@ -147,19 +147,26 @@ export function AppShell({
 
           <Link
             href="/"
-            className="flex shrink-0 items-center gap-2"
+            className="group flex shrink-0 items-center gap-2.5 rounded-lg px-1 py-1"
             aria-label="Nexus home"
           >
-            <Terminal className="h-5 w-5 text-primary" />
-            <span className="text-lg font-bold tracking-tight">Nexus</span>
+            <span className="brand-mark flex h-7 w-7 items-center justify-center rounded-lg transition-transform duration-200 group-hover:scale-105">
+              <Terminal className="h-4 w-4 text-primary-foreground" />
+            </span>
+            <span className="font-display text-[1.0625rem] font-semibold tracking-tight">
+              Nexus
+            </span>
           </Link>
 
           <div className="flex-1" />
 
           {health && (
-            <span className="hidden items-center gap-1.5 px-2 text-xs text-muted-foreground sm:flex">
-              <Circle className="h-2 w-2 fill-primary text-primary" />
-              API online
+            <span className="mr-1 hidden items-center gap-1.5 rounded-full border border-border/60 bg-muted/40 px-2.5 py-1 text-[11px] font-medium text-muted-foreground sm:flex">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
+              </span>
+              Connected
             </span>
           )}
 
@@ -177,12 +184,12 @@ export function AppShell({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
-                className="flex items-center gap-2 rounded-md p-1 transition-colors hover:bg-accent"
+                className="flex items-center gap-2 rounded-full p-0.5 ring-1 ring-border/70 transition-all duration-200 hover:ring-primary/50"
                 aria-label="Account menu"
                 data-testid="button-user-menu"
               >
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-primary text-sm font-medium text-primary-foreground">
+                <Avatar className="h-7 w-7">
+                  <AvatarFallback className="brand-mark text-[11px] font-semibold text-primary-foreground">
                     {initials}
                   </AvatarFallback>
                 </Avatar>

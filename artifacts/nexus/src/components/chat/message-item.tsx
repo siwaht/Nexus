@@ -165,7 +165,10 @@ export function MessageItem({
 
   return (
     <article
-      className={cn('group flex flex-col gap-2', isUser && 'items-end')}
+      className={cn(
+        'group flex animate-[fade-up_0.3s_cubic-bezier(0.16,1,0.3,1)] flex-col gap-2',
+        isUser && 'items-end',
+      )}
       data-testid={`message-${message.id}`}
     >
       {/* Attachments */}
@@ -197,12 +200,12 @@ export function MessageItem({
       <div
         className={cn(
           isUser
-            ? 'max-w-[85%] rounded-2xl rounded-br-sm bg-primary px-4 py-2.5 text-primary-foreground'
+            ? 'max-w-[85%] rounded-2xl rounded-br-md border border-primary/15 bg-primary/10 px-4 py-2.5 shadow-xs'
             : 'w-full',
         )}
       >
         {isUser ? (
-          <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">
+          <p className="whitespace-pre-wrap break-words text-[0.9375rem] leading-relaxed">
             {message.content}
           </p>
         ) : (

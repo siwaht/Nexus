@@ -4,7 +4,7 @@ import { useGetAuthConfig, useLoginLocalUser, useRegisterLocalUser } from "@work
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Terminal } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -61,56 +61,36 @@ export function SignInScreen() {
 
   if (configLoading) {
     return (
-      <div className="min-h-[100dvh] w-full flex items-center justify-center bg-background">
-        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      <div className="flex min-h-[100dvh] w-full items-center justify-center bg-background">
+        <div
+          className="h-10 w-10 animate-spin rounded-full border-2 border-primary border-t-transparent"
+          role="status"
+          aria-label="Loading"
+        />
       </div>
     );
   }
 
   if (authConfig?.mode === "replit") {
     return (
-      <div className="min-h-[100dvh] w-full flex items-center justify-center bg-background">
-        <Card className="w-full max-w-md border-card-border shadow-lg">
-          <CardHeader className="space-y-4 text-center pb-8">
-            <div className="mx-auto w-16 h-16 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Terminal className="w-8 h-8 text-primary" />
-            </div>
-            <div>
-              <CardTitle className="text-2xl font-bold tracking-tight">Nexus</CardTitle>
-              <CardDescription className="text-base mt-2">
-                Self-hosted AI chat workspace
-              </CardDescription>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <Button
-              onClick={login}
-              className="w-full h-11 font-medium"
-              data-testid="button-login"
-            >
-              Log in
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      <SignInFrame>
+        <Button
+          onClick={login}
+          className="h-11 w-full font-medium shadow-sm"
+          data-testid="button-login"
+        >
+          Continue with Replit
+        </Button>
+        <p className="mt-4 text-center text-xs leading-relaxed text-muted-foreground">
+          Your API keys are encrypted on the server and never sent to the
+          browser.
+        </p>
+      </SignInFrame>
     );
   }
 
   return (
-    <div className="min-h-[100dvh] w-full flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md border-card-border shadow-lg">
-        <CardHeader className="space-y-4 text-center pb-6">
-          <div className="mx-auto w-16 h-16 rounded-xl bg-primary/10 flex items-center justify-center">
-            <Terminal className="w-8 h-8 text-primary" />
-          </div>
-          <div>
-            <CardTitle className="text-2xl font-bold tracking-tight">Nexus</CardTitle>
-            <CardDescription className="text-base mt-2">
-              Self-hosted AI chat workspace
-            </CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent>
+    <SignInFrame>
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === "register" && (
               <div className="grid grid-cols-2 gap-3">
@@ -176,18 +156,65 @@ export function SignInScreen() {
                 : "Create account"}
             </Button>
           </form>
-          <div className="mt-4 text-center">
-            <button
-              type="button"
-              onClick={() => setMode(mode === "login" ? "register" : "login")}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              data-testid="button-toggle-mode"
-            >
-              {mode === "login" ? "Need an account? Create one" : "Already have an account? Log in"}
-            </button>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="mt-5 text-center">
+        <button
+          type="button"
+          onClick={() => setMode(mode === "login" ? "register" : "login")}
+          className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+          data-testid="button-toggle-mode"
+        >
+          {mode === "login" ? (
+            <>
+              Need an account?{" "}
+              <span className="font-medium text-primary">Create one</span>
+            </>
+          ) : (
+            <>
+              Already have an account?{" "}
+              <span className="font-medium text-primary">Log in</span>
+            </>
+          )}
+        </button>
+      </div>
+    </SignInFrame>
+  );
+}
+
+/**
+ * Shared chrome for both auth modes: the ambient background, the brand mark and
+ * the card. Keeping it in one place means the two modes can't drift apart.
+ */
+function SignInFrame({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="relative flex min-h-[100dvh] w-full items-center justify-center overflow-hidden p-4">
+      {/* A soft grid, faded out from the centre, to give the empty page depth. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-[0.35] [mask-image:radial-gradient(45rem_32rem_at_50%_40%,black,transparent)]"
+        style={{
+          backgroundImage:
+            'linear-gradient(hsl(var(--border)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--border)) 1px, transparent 1px)',
+          backgroundSize: '56px 56px',
+        }}
+      />
+
+      <div className="relative w-full max-w-md animate-[fade-up_0.45s_cubic-bezier(0.16,1,0.3,1)]">
+        <div className="mb-7 flex flex-col items-center text-center">
+          <span className="brand-mark mb-4 flex h-14 w-14 items-center justify-center rounded-2xl">
+            <Terminal className="h-7 w-7 text-primary-foreground" />
+          </span>
+          <h1 className="text-gradient font-display text-3xl font-semibold tracking-tight">
+            Nexus
+          </h1>
+          <p className="mt-1.5 max-w-xs text-sm leading-relaxed text-muted-foreground">
+            A self-hosted AI workspace. Your models, your keys, your data.
+          </p>
+        </div>
+
+        <Card className="surface-raised border-card-border/80 shadow-xl">
+          <CardContent className="pt-6">{children}</CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

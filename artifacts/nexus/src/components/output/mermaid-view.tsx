@@ -116,7 +116,7 @@ export function MermaidView({ source, title }: MermaidViewProps) {
       )}
 
       {showSource ? (
-        <pre className="overflow-x-auto bg-[#0d1117] p-4 text-[13px] leading-relaxed text-slate-100">
+        <pre className="overflow-x-auto bg-[hsl(var(--code-surface))] p-4 text-[12.5px] leading-[1.7] text-slate-100">
           <code>{source}</code>
         </pre>
       ) : (

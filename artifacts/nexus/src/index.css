@@ -1,4 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+/*
+ * Inter carries body copy (it's built for long-form screen reading), Space
+ * Grotesk is reserved for display type — headings, the brand mark, stat
+ * figures. Using a geometric display face for paragraphs is what made the
+ * earlier build feel cold.
+ */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @plugin "@tailwindcss/typography";
@@ -58,13 +64,51 @@
   --color-sidebar-ring: hsl(var(--sidebar-ring));
 
   --font-sans: var(--app-font-sans);
+  --font-display: var(--app-font-display);
   --font-serif: var(--app-font-serif);
   --font-mono: var(--app-font-mono);
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 5px);
+  --radius-md: calc(var(--radius) - 3px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 10px);
+
+  --shadow-glow: var(--glow-primary);
+
+  --animate-fade-up: fade-up 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-fade-in: fade-in 0.25s ease-out;
+  --animate-shimmer: shimmer 1.6s ease-in-out infinite;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes shimmer {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.8;
+  }
 }
 
 /* LIGHT MODE */
@@ -75,15 +119,20 @@
   --elevate-1: rgba(0, 0, 0, 0.03);
   --elevate-2: rgba(0, 0, 0, 0.08);
 
-  --background: 220 18% 97%;
-  --foreground: 222 47% 11%;
-  --border: 220 13% 91%;
+  /*
+   * A hint of warmth in the neutrals (hue 210-220 at very low saturation)
+   * keeps light mode from reading as clinical grey, and lets the teal accent
+   * sit against it without vibrating.
+   */
+  --background: 210 20% 98%;
+  --foreground: 222 42% 12%;
+  --border: 215 16% 90%;
   --card: 0 0% 100%;
-  --card-foreground: 222 47% 11%;
-  --card-border: 220 13% 88%;
-  --sidebar: 220 14% 96%;
-  --sidebar-foreground: 222 47% 11%;
-  --sidebar-border: 220 13% 91%;
+  --card-foreground: 222 42% 12%;
+  --card-border: 215 18% 91%;
+  --sidebar: 213 22% 96%;
+  --sidebar-foreground: 222 42% 12%;
+  --sidebar-border: 215 16% 91%;
   --sidebar-primary: 174 70% 41%;
   --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent: 220 14% 92%;
@@ -110,28 +159,52 @@
   --chart-4: 40 90% 55%;
   --chart-5: 340 75% 55%;
 
-  --app-font-sans: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --app-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --app-font-display: 'Space Grotesk', 'Inter', -apple-system, sans-serif;
   --app-font-serif: Georgia, serif;
-  --app-font-mono: 'JetBrains Mono', 'Courier New', monospace;
-  --radius: 0.375rem;
-  --shadow-2xs: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
-  --shadow-xs: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
+  --app-font-mono: 'JetBrains Mono', 'SF Mono', 'Courier New', monospace;
+
+  /* 12px base radius. The old 6px made every panel read as a utility box. */
+  --radius: 0.75rem;
+
+  /*
+   * Shadows are tinted with the foreground hue rather than pure black, so
+   * elevation looks like light falling on a surface instead of a grey smudge.
+   */
+  --shadow-2xs: 0 1px 2px 0 hsl(222 42% 12% / 0.04);
+  --shadow-xs: 0 1px 2px 0 hsl(222 42% 12% / 0.05);
   --shadow-sm:
-    0px 1px 2px 0px rgba(0, 0, 0, 0.06),
-    0px 1px 3px 0px rgba(0, 0, 0, 0.1);
+    0 1px 2px -1px hsl(222 42% 12% / 0.07),
+    0 1px 3px 0 hsl(222 42% 12% / 0.06);
   --shadow:
-    0px 1px 2px 0px rgba(0, 0, 0, 0.06),
-    0px 1px 3px 0px rgba(0, 0, 0, 0.1);
+    0 1px 3px 0 hsl(222 42% 12% / 0.07),
+    0 1px 2px -1px hsl(222 42% 12% / 0.06);
   --shadow-md:
-    0px 2px 4px -1px rgba(0, 0, 0, 0.06),
-    0px 4px 6px -1px rgba(0, 0, 0, 0.1);
+    0 2px 4px -2px hsl(222 42% 12% / 0.06),
+    0 6px 12px -2px hsl(222 42% 12% / 0.08);
   --shadow-lg:
-    0px 4px 6px -2px rgba(0, 0, 0, 0.05),
-    0px 10px 15px -3px rgba(0, 0, 0, 0.1);
+    0 4px 8px -3px hsl(222 42% 12% / 0.06),
+    0 12px 24px -6px hsl(222 42% 12% / 0.1);
   --shadow-xl:
-    0px 10px 10px -5px rgba(0, 0, 0, 0.04),
-    0px 20px 25px -5px rgba(0, 0, 0, 0.1);
-  --shadow-2xl: 0px 25px 50px -12px rgba(0, 0, 0, 0.25);
+    0 8px 16px -6px hsl(222 42% 12% / 0.07),
+    0 24px 48px -12px hsl(222 42% 12% / 0.14);
+  --shadow-2xl: 0 32px 64px -16px hsl(222 42% 12% / 0.2);
+
+  /* Focus and hover glow, used on the composer and primary surfaces. */
+  --glow-primary: 0 0 0 1px hsl(var(--primary) / 0.25), 0 8px 28px -8px hsl(var(--primary) / 0.28);
+
+  /* Ambient wash behind the app; kept very low contrast on purpose. */
+  --ambient-1: hsl(174 70% 41% / 0.06);
+  --ambient-2: hsl(250 70% 60% / 0.05);
+
+  /*
+   * Code blocks stay dark in both themes (the highlight.js theme is a dark
+   * one), but tied to the app's hue so they harmonise instead of looking like
+   * a pasted-in GitHub screenshot.
+   */
+  --code-surface: 222 38% 12%;
+  --code-header: 222 32% 16%;
+
   --tracking-normal: 0em;
   --spacing: 0.25rem;
 
@@ -185,59 +258,80 @@
   --elevate-1: rgba(255, 255, 255, 0.04);
   --elevate-2: rgba(255, 255, 255, 0.09);
 
-  --background: 222 47% 11%;
-  --foreground: 210 20% 98%;
-  --border: 215 25% 18%;
-  --card: 217 33% 15%;
-  --card-foreground: 210 20% 98%;
-  --card-border: 215 25% 20%;
-  --sidebar: 220 40% 13%;
-  --sidebar-foreground: 210 20% 98%;
-  --sidebar-border: 215 30% 18%;
-  --sidebar-primary: 174 70% 50%;
-  --sidebar-primary-foreground: 222 47% 11%;
-  --sidebar-accent: 217 28% 20%;
-  --sidebar-accent-foreground: 210 20% 98%;
-  --sidebar-ring: 174 70% 50%;
-  --popover: 217 33% 15%;
-  --popover-foreground: 210 20% 98%;
-  --popover-border: 215 25% 20%;
-  --primary: 174 70% 50%;
-  --primary-foreground: 222 47% 11%;
-  --secondary: 215 25% 20%;
-  --secondary-foreground: 210 20% 98%;
-  --muted: 217 28% 18%;
-  --muted-foreground: 215 15% 65%;
-  --accent: 174 70% 50%;
-  --accent-foreground: 222 47% 11%;
-  --destructive: 0 72% 51%;
+  /*
+   * Dark mode is built as a deliberate elevation ladder rather than one flat
+   * navy: sidebar sits below the page, cards sit above it. Saturation is
+   * pulled back (47% → 32%) so the teal accent is the only thing that's
+   * genuinely colourful.
+   */
+  --background: 222 32% 9%;
+  --foreground: 210 24% 97%;
+  --border: 216 20% 19%;
+  --card: 220 26% 13%;
+  --card-foreground: 210 24% 97%;
+  --card-border: 216 20% 21%;
+  --sidebar: 222 30% 7%;
+  --sidebar-foreground: 210 24% 97%;
+  --sidebar-border: 216 22% 15%;
+  --sidebar-primary: 174 72% 52%;
+  --sidebar-primary-foreground: 222 32% 9%;
+  --sidebar-accent: 218 24% 17%;
+  --sidebar-accent-foreground: 210 24% 98%;
+  --sidebar-ring: 174 72% 52%;
+  --popover: 220 26% 14%;
+  --popover-foreground: 210 24% 97%;
+  --popover-border: 216 20% 22%;
+  --primary: 174 72% 52%;
+  --primary-foreground: 222 40% 8%;
+  --secondary: 218 22% 19%;
+  --secondary-foreground: 210 24% 97%;
+  --muted: 219 24% 16%;
+  --muted-foreground: 215 16% 62%;
+  --accent: 174 72% 52%;
+  --accent-foreground: 222 40% 8%;
+  --destructive: 0 68% 55%;
   --destructive-foreground: 0 0% 100%;
-  --input: 215 25% 25%;
-  --ring: 174 70% 50%;
+  --input: 216 20% 24%;
+  --ring: 174 72% 52%;
   --chart-1: 174 70% 50%;
   --chart-2: 220 70% 60%;
   --chart-3: 280 65% 65%;
   --chart-4: 40 90% 60%;
   --chart-5: 340 75% 60%;
 
-  --shadow-2xs: 0px 1px 2px 0px rgba(0, 0, 0, 0.3);
-  --shadow-xs: 0px 1px 2px 0px rgba(0, 0, 0, 0.3);
+  /*
+   * Dark elevation needs a top highlight, not just a drop shadow — an inset
+   * hairline of light is what separates stacked dark surfaces.
+   */
+  --shadow-2xs: 0 1px 2px 0 hsl(222 50% 3% / 0.4);
+  --shadow-xs:
+    inset 0 1px 0 0 hsl(0 0% 100% / 0.03),
+    0 1px 2px 0 hsl(222 50% 3% / 0.45);
   --shadow-sm:
-    0px 1px 2px 0px rgba(0, 0, 0, 0.3),
-    0px 1px 3px 0px rgba(0, 0, 0, 0.4);
+    inset 0 1px 0 0 hsl(0 0% 100% / 0.035),
+    0 1px 3px 0 hsl(222 50% 3% / 0.5);
   --shadow:
-    0px 1px 2px 0px rgba(0, 0, 0, 0.3),
-    0px 1px 3px 0px rgba(0, 0, 0, 0.4);
+    inset 0 1px 0 0 hsl(0 0% 100% / 0.04),
+    0 2px 4px -1px hsl(222 50% 3% / 0.5);
   --shadow-md:
-    0px 2px 4px -1px rgba(0, 0, 0, 0.3),
-    0px 4px 6px -1px rgba(0, 0, 0, 0.4);
+    inset 0 1px 0 0 hsl(0 0% 100% / 0.045),
+    0 6px 14px -4px hsl(222 50% 3% / 0.55);
   --shadow-lg:
-    0px 4px 6px -2px rgba(0, 0, 0, 0.3),
-    0px 10px 15px -3px rgba(0, 0, 0, 0.4);
+    inset 0 1px 0 0 hsl(0 0% 100% / 0.05),
+    0 12px 28px -8px hsl(222 50% 3% / 0.6);
   --shadow-xl:
-    0px 10px 10px -5px rgba(0, 0, 0, 0.3),
-    0px 20px 25px -5px rgba(0, 0, 0, 0.4);
-  --shadow-2xl: 0px 25px 50px -12px rgba(0, 0, 0, 0.5);
+    inset 0 1px 0 0 hsl(0 0% 100% / 0.055),
+    0 24px 52px -12px hsl(222 50% 3% / 0.7);
+  --shadow-2xl: 0 32px 68px -16px hsl(222 50% 2% / 0.8);
+
+  --glow-primary: 0 0 0 1px hsl(var(--primary) / 0.3), 0 10px 34px -10px hsl(var(--primary) / 0.35);
+
+  --ambient-1: hsl(174 72% 52% / 0.08);
+  --ambient-2: hsl(250 75% 62% / 0.07);
+
+  /* Slightly deeper than the card so code recedes rather than pops. */
+  --code-surface: 222 34% 10%;
+  --code-header: 220 26% 14%;
 }
 
 @layer base {
@@ -248,15 +342,89 @@
   /* Appearance settings drive these; the theme provider sets them on <html>. */
   html {
     font-size: var(--nexus-font-size, 15px);
+    -webkit-tap-highlight-color: transparent;
   }
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    /* Slightly tighter than Inter's default; reads better at UI sizes. */
+    letter-spacing: -0.011em;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    text-rendering: optimizeLegibility;
+  }
+
+  /*
+   * A very faint two-point colour wash behind everything. It stops large dark
+   * areas reading as dead flat without ever competing with content.
+   */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(58rem 40rem at 12% -8%, var(--ambient-1), transparent 70%),
+      radial-gradient(48rem 34rem at 92% 4%, var(--ambient-2), transparent 72%);
+  }
+
+  /* Display face for headings; body copy stays on Inter. */
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display;
+    letter-spacing: -0.02em;
+  }
+
+  /* Numerals line up in tables, usage figures and token counts. */
+  th,
+  td,
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  ::selection {
+    background-color: hsl(var(--primary) / 0.25);
+    color: hsl(var(--foreground));
   }
 
   /* Visible focus for keyboard users without boxing in mouse clicks. */
   :focus-visible {
     @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  /*
+   * Slim, self-coloured scrollbars. The default chunky ones are the single
+   * biggest giveaway that an app hasn't been finished.
+   */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.28) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted-foreground) / 0.26);
+    border-radius: 9999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--muted-foreground) / 0.45);
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: transparent;
   }
 
   /* KaTeX inherits the surrounding size rather than forcing its own scale. */
@@ -282,6 +450,75 @@
 @layer utilities {
   input[type='search']::-webkit-search-cancel-button {
     @apply hidden;
+  }
+
+  /* Translucent blurred surface for headers and floating bars. */
+  .glass {
+    background-color: hsl(var(--card) / 0.72);
+    backdrop-filter: blur(14px) saturate(150%);
+    -webkit-backdrop-filter: blur(14px) saturate(150%);
+  }
+
+  .glass-sidebar {
+    background-color: hsl(var(--sidebar) / 0.82);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+  }
+
+  /* A card that reads as lifted off the page rather than drawn on it. */
+  .surface-raised {
+    background-image: linear-gradient(
+      to bottom,
+      hsl(0 0% 100% / 0.035),
+      transparent 40%
+    );
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* Brand and stat figures. */
+  .text-gradient {
+    background-image: linear-gradient(
+      135deg,
+      hsl(var(--foreground)),
+      hsl(var(--primary))
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .brand-mark {
+    background-image: linear-gradient(
+      140deg,
+      hsl(var(--primary)),
+      hsl(from hsl(var(--primary)) calc(h + 45) s calc(l - 12))
+    );
+    box-shadow:
+      inset 0 1px 0 0 hsl(0 0% 100% / 0.25),
+      0 6px 16px -6px hsl(var(--primary) / 0.5);
+  }
+
+  .skeleton {
+    background-color: hsl(var(--muted-foreground) / 0.13);
+    animation: var(--animate-shimmer);
+    border-radius: var(--radius-md);
+  }
+
+  /* Left accent bar for the selected row in a list. */
+  .rail-active {
+    position: relative;
+  }
+
+  .rail-active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    height: 60%;
+    width: 2px;
+    translate: 0 -50%;
+    border-radius: 9999px;
+    background-color: hsl(var(--primary));
   }
 
   [contenteditable][data-placeholder]:empty::before {
